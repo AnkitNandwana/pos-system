@@ -1,0 +1,48 @@
+cd pos-system
+python3 -m venv venv
+source venv/bin/activate
+pip install django djangorestframework psycopg2-binary kafka-python redis
+mkdir backend
+django-admin startproject config backend
+cd backend
+mkdir apps
+cd apps
+django-admin startapp plugins
+django-admin startapp employees
+django-admin startapp events
+django-admin startapp plugin_events
+
+#add apps in the settings before running
+python manage.py makemigrations 
+python manage.py migrate
+
+#Create Front end
+
+cd ../
+mkdir front-end
+cd front-end
+npm create vite@latest . -- --template react-ts
+npm install
+npm install axios tailwindcss @tanstack/react-query
+
+#After installing tailwindcss run below commands to create files
+npm install -D tailwindcss @tailwindcss/cli postcss autoprefixer
+npx tailwindcss init -p
+
+#setup DATABASE
+sudo -u postgres psql
+# inside psql:
+CREATE DATABASE pos_system;
+CREATE USER pos_user WITH PASSWORD 'pos_user';
+GRANT ALL PRIVILEGES ON DATABASE pos_system TO pos_user;
+\q
+
+#pushing code to github
+git init
+git add README.md
+git remote add origin git@github.com-personal:AnkitNandwana/pos-system.git
+git remote set-url origin git@github.com-personal:AnkitNandwana/pos-system.git
+git remote -v
+git commit -m "first commit"
+git branch -M main
+git gui and push
