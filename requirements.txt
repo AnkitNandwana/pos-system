@@ -1,0 +1,14 @@
+asgiref==3.8.1
+astunparse==1.6.3
+backports.zoneinfo==0.2.1
+django==4.2.27
+graphql-core==3.2.7
+kafka-python==2.3.0
+psycopg2-binary==2.9.10
+python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
+six==1.17.0
+sqlparse==0.5.5
+strawberry-graphql==0.255.0
+strawberry-graphql-django==0.48.0
+typing-extensions==4.13.2
