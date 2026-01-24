@@ -1,0 +1,94 @@
+# POS System Test Rig - Required Commands
+
+## Prerequisites
+# Ensure Kafka consumer is running in separate terminal
+python manage.py consume_events
+
+## Setup and Run Complete Test Rig
+./run_test_rig.sh
+
+## Alternative Manual Commands
+
+# 1. Run test rig only
+python manage.py run_pos_test_rig --verbose --validate-plugins
+
+# 2. Validate results after test
+python manage.py validate_test_results --detailed
+
+# 3. Validate specific test run (use correlation ID from test output)
+python manage.py validate_test_results --correlation-id <CORRELATION_ID> --detailed
+
+## Setup Commands (if running manually)
+
+# Create test data
+python manage.py shell -c "
+from employees.models import Employee
+from products.models import Product
+from customers.models import Customer
+from plugins.models import PluginConfiguration
+
+# Create test employee
+Employee.objects.get_or_create(
+    username='cashier1',
+    defaults={
+        'email': 'cashier1@pos.com',
+        'employee_id': 'EMP_CASHIER_001',
+        'role': 'CASHIER',
+        'first_name': 'John',
+        'last_name': 'Doe'
+    }
+)
+
+# Create test customer
+Customer.objects.get_or_create(
+    customer_id='CUST_001',
+    defaults={
+        'identifier': 'loyalty_12345',
+        'first_name': 'Jane',
+        'last_name': 'Smith',
+        'email': 'jane.smith@email.com',
+        'phone': '555-0123',
+        'loyalty_points': 150,
+        'tier': 'SILVER'
+    }
+)
+
+# Enable all plugins
+for plugin in ['employee_time_tracker', 'purchase_recommender', 'customer_lookup', 'fraud_detection', 'age_verification']:
+    PluginConfiguration.objects.update_or_create(
+        name=plugin,
+        defaults={'enabled': True, 'description': f'{plugin} plugin'}
+    )
+"
+
+# Seed products if needed
+python manage.py seed_products
+
+## Debugging Commands
+
+# Check plugin configurations
+python manage.py shell -c "
+from plugins.models import PluginConfiguration
+for p in PluginConfiguration.objects.all():
+    print(f'{p.name}: {\"Enabled\" if p.enabled else \"Disabled\"}')
+"
+
+# Check recent test results
+python manage.py shell -c "
+from plugins.employee_time_tracker.models import TimeEntry
+from plugins.fraud_detection.models import FraudAlert
+from datetime import datetime, timedelta
+
+recent_time_entries = TimeEntry.objects.filter(clock_in__gte=datetime.now() - timedelta(hours=1)).count()
+recent_fraud_alerts = FraudAlert.objects.filter(timestamp__gte=datetime.now() - timedelta(hours=1)).count()
+
+print(f'Recent time entries: {recent_time_entries}')
+print(f'Recent fraud alerts: {recent_fraud_alerts}')
+"
+
+## File Permissions (if needed)
+chmod +x run_test_rig.sh
+
+## Docker Commands (if using Docker)
+docker-compose up -d kafka
+docker-compose exec web python manage.py run_pos_test_rig --verbose
