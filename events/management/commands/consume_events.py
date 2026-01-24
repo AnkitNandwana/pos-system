@@ -23,16 +23,18 @@ class Command(BaseCommand):
         # Register plugins (lazy import to avoid circular dependency)
         from plugins.employee_time_tracker.plugin import EmployeeTimeTrackerPlugin
         from plugins.purchase_recommender.plugin import PurchaseRecommenderPlugin
+        from plugins.customer_lookup.plugin import CustomerLookupPlugin
         
         plugin_registry.register(EmployeeTimeTrackerPlugin)
         plugin_registry.register(PurchaseRecommenderPlugin)
+        plugin_registry.register(CustomerLookupPlugin)
         
         # Create Kafka consumer
         consumer = KafkaConsumer(
             settings.KAFKA_TOPIC,
             bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            group_id='pos-consumer-group',
+            group_id='pos-consumer-group-v2',
             auto_offset_reset='latest'
         )
         

@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'products',
     'baskets',
     'plugins.purchase_recommender',
+    'customers',
+    'plugins.customer_lookup',
 ]
 
 MIDDLEWARE = [

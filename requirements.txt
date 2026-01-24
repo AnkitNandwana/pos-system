@@ -13,3 +13,4 @@ strawberry-graphql==0.255.0
 strawberry-graphql-django==0.48.0
 typing-extensions==4.13.2
 pyjwt==2.8.0
+requests==2.31.0

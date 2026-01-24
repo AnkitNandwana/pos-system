@@ -11,20 +11,21 @@ from django.conf import settings
 @strawberry.type
 class BasketMutations:
     @strawberry.mutation
-    def start_basket(self, employee_id: int, terminal_id: str) -> BasketType:
+    def start_basket(self, employee_id: int, terminal_id: str, customer_identifier: str = None) -> BasketType:
         employee = Employee.objects.get(id=employee_id)
         basket = Basket.objects.create(
             basket_id=f"basket_{uuid.uuid4().hex[:8]}",
             employee=employee
         )
         
-        # Publish event
+        # Publish BASKET_STARTED event
         event_producer.publish(settings.KAFKA_TOPIC, {
             'event_type': 'BASKET_STARTED',
             'timestamp': timezone.now().isoformat(),
             'employee_id': employee_id,
             'basket_id': basket.basket_id,
-            'terminal_id': terminal_id
+            'terminal_id': terminal_id,
+            'customer_identifier': customer_identifier
         })
         
         return basket

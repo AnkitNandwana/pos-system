@@ -34,8 +34,11 @@ class PluginRegistry:
     def route_event(self, event_type, event_data):
         """Route event to all enabled plugins that can handle it"""
         enabled_plugins = self.get_enabled_plugins()
+
+        logger.info(f"Routing {event_type} to {len(enabled_plugins)} enabled plugins")
         
         for plugin in enabled_plugins:
+            logger.info(f"Checking plugin {plugin.name} for {event_type} - can_handle: {plugin.can_handle(event_type)}")
             if plugin.can_handle(event_type):
                 try:
                     plugin.handle_event(event_type, event_data)
