@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'plugins.purchase_recommender',
     'customers',
     'plugins.customer_lookup',
+    'plugins.fraud_detection',
 ]
 
 MIDDLEWARE = [

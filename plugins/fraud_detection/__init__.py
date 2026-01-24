@@ -1,0 +1,1 @@
+default_app_config = 'plugins.fraud_detection.apps.FraudDetectionConfig'

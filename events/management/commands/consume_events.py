@@ -24,10 +24,12 @@ class Command(BaseCommand):
         from plugins.employee_time_tracker.plugin import EmployeeTimeTrackerPlugin
         from plugins.purchase_recommender.plugin import PurchaseRecommenderPlugin
         from plugins.customer_lookup.plugin import CustomerLookupPlugin
+        from plugins.fraud_detection.plugin import FraudDetectionPlugin
         
         plugin_registry.register(EmployeeTimeTrackerPlugin)
         plugin_registry.register(PurchaseRecommenderPlugin)
         plugin_registry.register(CustomerLookupPlugin)
+        plugin_registry.register(FraudDetectionPlugin)
         
         # Create Kafka consumer
         consumer = KafkaConsumer(
