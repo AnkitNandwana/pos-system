@@ -22,7 +22,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Register plugins (lazy import to avoid circular dependency)
         from plugins.employee_time_tracker.plugin import EmployeeTimeTrackerPlugin
+        from plugins.purchase_recommender.plugin import PurchaseRecommenderPlugin
+        
         plugin_registry.register(EmployeeTimeTrackerPlugin)
+        plugin_registry.register(PurchaseRecommenderPlugin)
         
         # Create Kafka consumer
         consumer = KafkaConsumer(

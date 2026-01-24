@@ -49,6 +49,9 @@ INSTALLED_APPS = [
     'events',
     'plugins',
     'plugins.employee_time_tracker',
+    'products',
+    'baskets',
+    'plugins.purchase_recommender',
 ]
 
 MIDDLEWARE = [
