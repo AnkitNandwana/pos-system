@@ -43,6 +43,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'strawberry.django',
+    'employees',
+    'terminals',
+    'events',
+    'plugins',
+    'plugins.employee_time_tracker',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +138,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom User Model
+AUTH_USER_MODEL = 'employees.Employee'
+
+# Kafka Configuration
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092').split(',')
+KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'pos-events')
