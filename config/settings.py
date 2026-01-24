@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'customers',
     'plugins.customer_lookup',
     'plugins.fraud_detection',
+    'plugins.age_verification',
 ]
 
 MIDDLEWARE = [

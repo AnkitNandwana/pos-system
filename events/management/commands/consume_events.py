@@ -25,11 +25,13 @@ class Command(BaseCommand):
         from plugins.purchase_recommender.plugin import PurchaseRecommenderPlugin
         from plugins.customer_lookup.plugin import CustomerLookupPlugin
         from plugins.fraud_detection.plugin import FraudDetectionPlugin
+        from plugins.age_verification.plugin import AgeVerificationPlugin
         
         plugin_registry.register(EmployeeTimeTrackerPlugin)
         plugin_registry.register(PurchaseRecommenderPlugin)
         plugin_registry.register(CustomerLookupPlugin)
         plugin_registry.register(FraudDetectionPlugin)
+        plugin_registry.register(AgeVerificationPlugin)
         
         # Create Kafka consumer
         consumer = KafkaConsumer(
