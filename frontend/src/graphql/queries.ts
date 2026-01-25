@@ -42,6 +42,10 @@ export const GET_BASKET_DETAILS = gql`
         loyaltyPoints
         tier
       }
+      employee {
+        id
+        username
+      }
       items {
         id
         productId

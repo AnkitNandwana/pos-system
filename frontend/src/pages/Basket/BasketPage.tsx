@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container } from '@mui/material';
 import { useBasket } from '../../context/BasketContext';
+import { useBasketDetails } from '../../hooks/useBasketDetails';
 import ProductSearch from '../../components/ProductSearch';
 import BasketSummary from '../../components/BasketSummary';
 import RealtimeRecommendations from '../../components/RealtimeRecommendations';
@@ -10,6 +11,9 @@ import CustomerInfo from '../../components/CustomerInfo';
 const BasketPage: React.FC = () => {
   const { state } = useBasket();
   const { basket, customer, ageVerification } = state;
+  
+  // Fetch basket details with polling for customer updates
+  useBasketDetails(basket?.basketId || null);
 
   if (!basket) {
     return (

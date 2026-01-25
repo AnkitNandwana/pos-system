@@ -17,11 +17,11 @@ class CustomerLookupPlugin(BasePlugin):
     description = "Fetches customer data from external system and caches locally"
     
     def get_supported_events(self):
-        return ["BASKET_STARTED"]
+        return ["basket.started"]
     
     def handle_event(self, event_type, event_data):
         """Handle basket started event with customer identifier"""
-        if event_type == "BASKET_STARTED":
+        if event_type == "basket.started":
             customer_identifier = event_data.get('customer_identifier')
             if customer_identifier:
                 self._handle_customer_lookup(event_data)

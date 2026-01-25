@@ -14,7 +14,7 @@ export const useProductAddition = () => {
     price: number;
     quantity?: number;
   }) => {
-    const isAgeVerificationActive = pluginStatus['age_verification'];
+    const isAgeVerificationActive = pluginStatus?.['age_verification'] || false;
     
     if (!isAgeVerificationActive) {
       // Direct addition - plugin inactive
