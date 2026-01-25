@@ -5,3 +5,8 @@ class EmployeeTimeTrackerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'plugins.employee_time_tracker'
     label = 'employee_time_tracker'
+    
+    def ready(self):
+        from plugins.registry import plugin_registry
+        from .plugin import EmployeeTimeTrackerPlugin
+        plugin_registry.register(EmployeeTimeTrackerPlugin)

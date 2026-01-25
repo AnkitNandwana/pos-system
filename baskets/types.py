@@ -2,6 +2,7 @@ import strawberry
 from strawberry import auto
 from typing import List
 from .models import Basket, BasketItem
+from employees.types import EmployeeType
 
 
 @strawberry.django.type(Basket)
@@ -11,6 +12,10 @@ class BasketType:
     customer_id: auto
     status: auto
     created_at: auto
+    
+    @strawberry.field
+    def employee(self) -> EmployeeType:
+        return self.employee
     
     @strawberry.field
     def items(self) -> List['BasketItemType']:

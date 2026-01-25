@@ -1,28 +1,74 @@
-import React from 'react';
-import { useQuery } from '@apollo/client/react';
-import { HEALTH_CHECK } from './graphql/queries';
+import React, { useState, useEffect } from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
+import LoginPage from './components/LoginPage';
+import POSTerminal from './components/POSTerminal';
+import { Employee, Terminal, LoginResponse } from './types';
 import './App.css';
 
-interface HealthCheckData {
-  __schema: {
-    types: { name: string }[];
-  };
-}
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  },
+});
 
 function App() {
-  const { loading, error, data } = useQuery<HealthCheckData>(HEALTH_CHECK);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [terminal, setTerminal] = useState<Terminal | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  if (loading) return <p>Connecting to GraphQL...</p>;
-  if (error) return <p>Error: {error.message}</p>;
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedEmployee = localStorage.getItem('employee');
+    const savedTerminal = localStorage.getItem('terminal');
+    
+    if (token && savedEmployee && savedTerminal) {
+      setEmployee(JSON.parse(savedEmployee));
+      setTerminal(JSON.parse(savedTerminal));
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLoginSuccess = (loginData: LoginResponse) => {
+    setEmployee(loginData.employee);
+    setTerminal(loginData.terminal);
+    setIsLoggedIn(true);
+    
+    localStorage.setItem('employee', JSON.stringify(loginData.employee));
+    localStorage.setItem('terminal', JSON.stringify(loginData.terminal));
+  };
+
+  const handleLogout = () => {
+    setEmployee(null);
+    setTerminal(null);
+    setIsLoggedIn(false);
+    
+    localStorage.removeItem('token');
+    localStorage.removeItem('employee');
+    localStorage.removeItem('terminal');
+  };
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>POS System Frontend</h1>
-        <p>✅ GraphQL Connection Successful</p>
-        <p>Available Types: {data?.__schema?.types?.length || 0}</p>
-      </header>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {!isLoggedIn || !employee || !terminal ? (
+        <LoginPage onLoginSuccess={handleLoginSuccess} />
+      ) : (
+        <POSTerminal
+          employee={employee}
+          terminal={terminal}
+          onLogout={handleLogout}
+        />
+      )}
+    </ThemeProvider>
   );
 }
 
