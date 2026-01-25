@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client';
 import {
   Dialog,
   DialogTitle,
@@ -61,9 +61,7 @@ const StartBasketModal: React.FC<StartBasketModalProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography variant="h5" className="font-semibold">
-          Start New Basket
-        </Typography>
+        Start New Basket
       </DialogTitle>
       
       <DialogContent>

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useMutation } from '@apollo/client/react';
+import React, { useState, useEffect } from 'react';
+import { useMutation } from '@apollo/client';
 import {
   Paper,
   Typography,
@@ -13,7 +13,8 @@ import {
   Alert
 } from '@mui/material';
 import { CheckCircle, Cancel, Lightbulb } from '@mui/icons-material';
-import { ACCEPT_RECOMMENDATION_MUTATION, REJECT_RECOMMENDATION_MUTATION } from '../graphql/mutations';
+import { ACCEPT_RECOMMENDATION, REJECT_RECOMMENDATION } from '../graphql/queries';
+import { ADD_ITEM_MUTATION } from '../graphql/mutations';
 import { useBasket } from '../context/BasketContext';
 import { Recommendation } from '../types';
 
@@ -23,75 +24,100 @@ const RealtimeRecommendations: React.FC = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [connected, setConnected] = useState(false);
 
-  const [acceptRecommendation] = useMutation(ACCEPT_RECOMMENDATION_MUTATION);
-  const [rejectRecommendation] = useMutation(REJECT_RECOMMENDATION_MUTATION);
-
   useEffect(() => {
     if (!basket?.basketId) return;
 
-    const eventSource = new EventSource(`http://localhost:8000/events/recommendations/${basket.basketId}/`);
+    console.log(`Connecting to WebSocket: ws://localhost:8000/ws/recommendations/${basket.basketId}/`);
+    const ws = new WebSocket(`ws://localhost:8000/ws/recommendations/${basket.basketId}/`);
     
-    eventSource.onopen = () => {
-      console.log('SSE connected');
+    ws.onopen = () => {
+      console.log('WebSocket connected for basket:', basket.basketId);
       setConnected(true);
     };
     
-    eventSource.onmessage = (event) => {
+    ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received recommendations:', data);
+      console.log('Received WebSocket message:', data);
       
-      if (data.type === 'recommendations') {
-        const formattedRecs = data.recommendations.map((rec: any) => ({
-          id: rec.id,
-          recommendedProductId: rec.recommended_product_id,
-          recommendedProductName: rec.recommended_product_name,
-          recommendedPrice: rec.recommended_price,
-          reason: rec.reason,
-          status: rec.status
-        }));
-        setRecommendations(formattedRecs);
-        dispatch({ type: 'SET_RECOMMENDATIONS', payload: formattedRecs });
+      if (data.type === 'test') {
+        console.log('Test message received:', data.message);
+      } else if (data.type === 'recommendations') {
+        console.log('Setting recommendations:', data.recommendations);
+        setRecommendations(data.recommendations);
+        dispatch({ type: 'SET_RECOMMENDATIONS', payload: data.recommendations });
       }
     };
     
-    eventSource.onerror = () => {
-      console.log('SSE error');
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setConnected(false);
+    };
+
+    ws.onclose = (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
       setConnected(false);
     };
 
     return () => {
-      eventSource.close();
+      if (ws.readyState === WebSocket.OPEN) {
+        console.log('Closing WebSocket connection');
+        ws.close();
+      }
     };
   }, [basket?.basketId, dispatch]);
 
-  const handleAccept = (recommendation: Recommendation) => {
-    acceptRecommendation({
-      variables: { recommendationId: recommendation.id }
-    }).then(() => {
-      // Remove accepted recommendation from local state
-      setRecommendations(prev => prev.filter(r => r.id !== recommendation.id));
-      
-      // Add item to basket context
-      dispatch({
-        type: 'ADD_ITEM',
-        payload: {
-          id: `rec_${recommendation.id}`,
-          productId: recommendation.recommendedProductId,
-          productName: recommendation.recommendedProductName,
-          quantity: 1,
-          price: recommendation.recommendedPrice
+  const [acceptRecommendation] = useMutation(ACCEPT_RECOMMENDATION);
+  const [rejectRecommendation] = useMutation(REJECT_RECOMMENDATION);
+  const [addItem] = useMutation(ADD_ITEM_MUTATION);
+
+  const handleAccept = async (recommendation: Recommendation) => {
+    try {
+      const result = await acceptRecommendation({
+        variables: {
+          recommendationId: recommendation.id,
+          basketId: basket?.basketId
         }
       });
-    });
+      
+      if (result.data?.acceptRecommendation?.success) {
+        // Add item to database via GraphQL
+        const addResult = await addItem({
+          variables: {
+            basketId: basket?.basketId,
+            productId: recommendation.recommendedProductId,
+            productName: recommendation.recommendedProductName,
+            quantity: 1,
+            price: recommendation.recommendedPrice
+          }
+        });
+        
+        // Add to context with the actual database ID
+        if (addResult.data?.addItem) {
+          dispatch({
+            type: 'ADD_ITEM',
+            payload: addResult.data.addItem
+          });
+        }
+        
+        // Remove from local recommendations
+        setRecommendations(prev => prev.filter(r => r.id !== recommendation.id));
+      }
+    } catch (error) {
+      console.error('Error accepting recommendation:', error);
+    }
   };
 
-  const handleReject = (recommendation: Recommendation) => {
-    rejectRecommendation({
-      variables: { recommendationId: recommendation.id }
-    }).then(() => {
-      // Remove rejected recommendation from local state
+  const handleReject = async (recommendation: Recommendation) => {
+    try {
+      await rejectRecommendation({
+        variables: { recommendationId: recommendation.id }
+      });
+      
+      // Remove from local recommendations
       setRecommendations(prev => prev.filter(r => r.id !== recommendation.id));
-    });
+    } catch (error) {
+      console.error('Error rejecting recommendation:', error);
+    }
   };
 
   if (!basket) {
@@ -133,8 +159,8 @@ const RealtimeRecommendations: React.FC = () => {
       </Alert>
       
       <List>
-        {recommendations.map((rec) => (
-          <ListItem key={rec.id} divider className="bg-orange-50">
+        {recommendations.map((rec, index) => (
+          <ListItem key={`${rec.recommendedProductId}-${index}`} divider className="bg-orange-50">
             <ListItemText
               primary={
                 <Box className="flex items-center space-x-2">
@@ -143,11 +169,9 @@ const RealtimeRecommendations: React.FC = () => {
                 </Box>
               }
               secondary={
-                <Box className="mt-1">
-                  <Typography variant="body2" className="text-gray-600">
-                    {rec.reason}
-                  </Typography>
-                </Box>
+                <Typography variant="body2" className="text-gray-600">
+                  {rec.reason}
+                </Typography>
               }
             />
             <ListItemSecondaryAction>

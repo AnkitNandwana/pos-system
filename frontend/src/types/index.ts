@@ -67,6 +67,18 @@ export interface AgeVerificationState {
   verified: boolean;
   productId?: string;
   minimumAge?: number;
+  restrictedItems?: RestrictedItem[];
+  customerAge?: number;
+  verificationMethod?: string;
+}
+
+export interface RestrictedItem {
+  productId: string;
+  name: string;
+  minimumAge: number;
+  category: string;
+  quantity?: number;
+  price?: number;
 }
 
 export interface Plugin {

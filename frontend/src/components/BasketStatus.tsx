@@ -1,5 +1,6 @@
 import React from 'react';
 import { Basket } from '../types';
+import { useBasket } from '../context/BasketContext';
 import {
   Card,
   CardContent,
@@ -7,9 +8,10 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Divider
+  Divider,
+  Alert
 } from '@mui/material';
-import { ShoppingCart, Person, CheckCircle } from '@mui/icons-material';
+import { ShoppingCart, Person, CheckCircle, Warning, HourglassEmpty } from '@mui/icons-material';
 
 interface BasketStatusProps {
   basket: Basket | null;
@@ -17,6 +19,38 @@ interface BasketStatusProps {
 }
 
 const BasketStatus: React.FC<BasketStatusProps> = ({ basket, loading }) => {
+  const { state } = useBasket();
+  
+  const getVerificationStateDisplay = () => {
+    switch (state.verificationState) {
+      case 'pending':
+        return (
+          <Alert severity="info" icon={<HourglassEmpty />} className="mb-4">
+            Processing item addition...
+          </Alert>
+        );
+      case 'required':
+        return (
+          <Alert severity="warning" icon={<Warning />} className="mb-4">
+            Age verification required
+          </Alert>
+        );
+      case 'verifying':
+        return (
+          <Alert severity="info" className="mb-4">
+            Verifying customer age...
+          </Alert>
+        );
+      case 'failed':
+        return (
+          <Alert severity="error" className="mb-4">
+            Verification failed or cancelled
+          </Alert>
+        );
+      default:
+        return null;
+    }
+  };
   if (loading) {
     return (
       <Card className="m-6 shadow-lg">
@@ -62,6 +96,8 @@ const BasketStatus: React.FC<BasketStatusProps> = ({ basket, loading }) => {
         </Box>
         
         <Divider className="mb-4" />
+        
+        {getVerificationStateDisplay()}
         
         <Box className="space-y-3">
           <Box className="flex justify-between items-center">

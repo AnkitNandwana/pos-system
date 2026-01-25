@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client';
 import { START_BASKET_MUTATION } from '../graphql/mutations';
 import { Employee, Terminal, Basket } from '../types';
 import SessionHeader from './SessionHeader';
 import BasketStatus from './BasketStatus';
 import PluginsPage from './PluginsPage';
+import { useBasket } from '../context/BasketContext';
+import { usePluginStatus } from '../hooks/usePluginStatus';
 import {
   Container,
   Typography,
@@ -25,17 +27,25 @@ interface StartBasketMutationData {
 }
 
 const POSTerminal: React.FC<POSTerminalProps> = ({ employee, terminal, onLogout }) => {
-  const [basket, setBasket] = React.useState<Basket | null>(null);
+  const { state, dispatch } = useBasket();
+  const { pluginStatus } = usePluginStatus();
   const [currentView, setCurrentView] = useState<'terminal' | 'plugins'>('terminal');
 
   const [startBasket, { loading: basketLoading }] = useMutation<StartBasketMutationData>(START_BASKET_MUTATION, {
-    onCompleted: (data) => {
-      setBasket(data.startBasket);
+    onCompleted: (data: StartBasketMutationData) => {
+      dispatch({ type: 'SET_BASKET', payload: data.startBasket });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Failed to start basket:', error);
     }
   });
+
+  // Initialize plugin status
+  useEffect(() => {
+    if (Object.keys(pluginStatus).length > 0) {
+      dispatch({ type: 'SET_PLUGIN_STATUS', payload: pluginStatus });
+    }
+  }, [pluginStatus, dispatch]);
 
   useEffect(() => {
     if (currentView === 'terminal') {
@@ -49,7 +59,7 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ employee, terminal, onLogout 
   }, [employee.id, terminal.terminalId, startBasket, currentView]);
 
   const handleLogout = () => {
-    setBasket(null);
+    dispatch({ type: 'CLEAR_BASKET' });
     onLogout();
   };
 
@@ -104,11 +114,11 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ employee, terminal, onLogout 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <BasketStatus basket={basket} loading={basketLoading} />
+            <BasketStatus basket={state.basket} loading={basketLoading} />
           </div>
           
           <div>
-            {basket && (
+            {state.basket && (
               <Paper className="p-6 shadow-lg border-l-4 border-blue-500">
                 <Box className="flex items-center space-x-2 mb-4">
                   <CheckCircle className="text-green-600" />
@@ -124,7 +134,7 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ employee, terminal, onLogout 
                 <Box className="space-y-3">
                   <Typography variant="body1" className="flex items-center justify-between">
                     <span className="text-gray-600">Active Basket:</span>
-                    <span className="font-mono font-semibold">{basket.basketId}</span>
+                    <span className="font-mono font-semibold">{state.basket.basketId}</span>
                   </Typography>
                   
                   <Typography variant="body1" className="flex items-center justify-between">
@@ -135,6 +145,15 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ employee, terminal, onLogout 
                   <Typography variant="body1" className="flex items-center justify-between">
                     <span className="text-gray-600">Terminal:</span>
                     <span className="font-semibold">{terminal.terminalId}</span>
+                  </Typography>
+                  
+                  <Typography variant="body1" className="flex items-center justify-between">
+                    <span className="text-gray-600">Age Verification:</span>
+                    <span className={`font-semibold ${
+                      state.pluginStatus['age_verification'] ? 'text-orange-600' : 'text-gray-400'
+                    }`}>
+                      {state.pluginStatus['age_verification'] ? 'Active' : 'Inactive'}
+                    </span>
                   </Typography>
                 </Box>
               </Paper>

@@ -1,8 +1,10 @@
 import strawberry
 from typing import List, AsyncGenerator
 from .types import RecommendationType
-import asyncio
-import json
+from events.consumer import EventConsumer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
@@ -10,15 +12,21 @@ class RecommendationSubscriptions:
     @strawberry.subscription
     async def recommendations(self, basket_id: str) -> AsyncGenerator[List[RecommendationType], None]:
         """Real-time subscription for recommendations"""
-        # This is a simplified implementation
-        # In production, you'd connect to the WebSocket channel layer
-        while True:
-            # Fetch current recommendations
-            from .models import Recommendation
-            recommendations = list(Recommendation.objects.filter(
-                basket_id=basket_id,
-                status='PENDING'
-            ))
-            
-            yield recommendations
-            await asyncio.sleep(1)  # Check every second
+        consumer = EventConsumer()
+        
+        async for event in consumer.subscribe_to_events(['RECOMMENDATION_SUGGESTED']):
+            if event.get('basket_id') == basket_id:
+                # Convert recommendations to GraphQL types
+                recommendations = []
+                for rec in event.get('recommendations', []):
+                    recommendations.append(RecommendationType(
+                        id=0,  # Temporary ID for new recommendations
+                        recommended_product_id=rec['product_id'],
+                        recommended_product_name=rec['name'],
+                        recommended_price=float(rec['price']),
+                        reason='Frequently bought together',
+                        status='PENDING'
+                    ))
+                
+                logger.info(f"Sending {len(recommendations)} recommendations for basket {basket_id}")
+                yield recommendations

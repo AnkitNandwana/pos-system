@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '../graphql/mutations';
 import { LoginResponse } from '../types';
 import { Store } from '@mui/icons-material';
@@ -18,12 +18,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
 
   const [login, { loading }] = useMutation<LoginMutationData>(LOGIN_MUTATION, {
-    onCompleted: (data) => {
+    onCompleted: (data: LoginMutationData) => {
       localStorage.setItem('token', data.login.token);
       onLoginSuccess(data.login);
       setError('');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error.message);
     }
   });

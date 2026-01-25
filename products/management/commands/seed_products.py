@@ -22,6 +22,11 @@ class Command(BaseCommand):
             {'product_id': 'PIZZA', 'name': 'Pizza', 'price': 12.99, 'category': 'food'},
             {'product_id': 'GARLIC_BREAD', 'name': 'Garlic Bread', 'price': 4.99, 'category': 'food'},
             {'product_id': 'SODA', 'name': 'Soda', 'price': 2.49, 'category': 'beverage'},
+            # Age-restricted products
+            {'product_id': 'BEER', 'name': 'Beer', 'price': 4.99, 'category': 'alcohol', 'age_restricted': True, 'minimum_age': 21},
+            {'product_id': 'WINE', 'name': 'Wine', 'price': 12.99, 'category': 'alcohol', 'age_restricted': True, 'minimum_age': 21},
+            {'product_id': 'CIGARETTES', 'name': 'Cigarettes', 'price': 8.99, 'category': 'tobacco', 'age_restricted': True, 'minimum_age': 18},
+            {'product_id': 'ENERGY_DRINK', 'name': 'Energy Drink', 'price': 3.99, 'category': 'beverage', 'age_restricted': True, 'minimum_age': 16},
         ]
         
         created_count = 0

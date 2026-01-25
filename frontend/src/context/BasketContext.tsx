@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { Basket, Customer, BasketItem, AgeVerificationState, Recommendation } from '../types';
+import { Basket, Customer, BasketItem, AgeVerificationState, Recommendation, RestrictedItem } from '../types';
 
 interface BasketState {
   basket: Basket | null;
@@ -8,6 +8,9 @@ interface BasketState {
   recommendations: Recommendation[];
   loading: boolean;
   error: string | null;
+  pluginStatus: { [key: string]: boolean };
+  verificationState: 'idle' | 'pending' | 'required' | 'verifying' | 'verified' | 'failed';
+  pendingItems: RestrictedItem[];
 }
 
 type BasketAction =
@@ -20,7 +23,14 @@ type BasketAction =
   | { type: 'SET_AGE_VERIFICATION'; payload: AgeVerificationState }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CLEAR_BASKET' };
+  | { type: 'CLEAR_BASKET' }
+  | { type: 'SET_PLUGIN_STATUS'; payload: { [key: string]: boolean } }
+  | { type: 'SET_VERIFICATION_STATE'; payload: 'idle' | 'pending' | 'required' | 'verifying' | 'verified' | 'failed' }
+  | { type: 'SET_PENDING_ITEMS'; payload: RestrictedItem[] }
+  | { type: 'CLEAR_PENDING_ITEMS' }
+  | { type: 'AGE_VERIFICATION_REQUIRED'; payload: { restrictedItems: RestrictedItem[]; minimumAge: number } }
+  | { type: 'AGE_VERIFICATION_COMPLETED'; payload: { customerAge: number; verificationMethod: string } }
+  | { type: 'AGE_VERIFICATION_FAILED'; payload: { reason: string } };
 
 const initialState: BasketState = {
   basket: null,
@@ -29,6 +39,9 @@ const initialState: BasketState = {
   recommendations: [],
   loading: false,
   error: null,
+  pluginStatus: {},
+  verificationState: 'idle',
+  pendingItems: [],
 };
 
 function basketReducer(state: BasketState, action: BasketAction): BasketState {
@@ -84,6 +97,43 @@ function basketReducer(state: BasketState, action: BasketAction): BasketState {
       return { ...state, error: action.payload };
     case 'CLEAR_BASKET':
       return initialState;
+    case 'SET_PLUGIN_STATUS':
+      return { ...state, pluginStatus: action.payload };
+    case 'SET_VERIFICATION_STATE':
+      return { ...state, verificationState: action.payload };
+    case 'SET_PENDING_ITEMS':
+      return { ...state, pendingItems: action.payload };
+    case 'CLEAR_PENDING_ITEMS':
+      return { ...state, pendingItems: [], verificationState: 'idle' };
+    case 'AGE_VERIFICATION_REQUIRED':
+      return {
+        ...state,
+        ageVerification: {
+          required: true,
+          verified: false,
+          restrictedItems: action.payload.restrictedItems,
+          minimumAge: action.payload.minimumAge
+        }
+      };
+    case 'AGE_VERIFICATION_COMPLETED':
+      return {
+        ...state,
+        ageVerification: {
+          ...state.ageVerification,
+          verified: true,
+          customerAge: action.payload.customerAge,
+          verificationMethod: action.payload.verificationMethod
+        }
+      };
+    case 'AGE_VERIFICATION_FAILED':
+      return {
+        ...state,
+        ageVerification: {
+          ...state.ageVerification,
+          verified: false
+        },
+        error: action.payload.reason
+      };
     default:
       return state;
   }

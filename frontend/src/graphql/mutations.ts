@@ -75,10 +75,7 @@ export const ADD_ITEM_MUTATION = gql`
 
 export const REMOVE_ITEM_MUTATION = gql`
   mutation RemoveItem($basketId: String!, $itemId: String!) {
-    removeItem(basketId: $basketId, itemId: $itemId) {
-      success
-      message
-    }
+    removeItem(basketId: $basketId, itemId: $itemId)
   }
 `;
 
@@ -118,6 +115,30 @@ export const UPDATE_PLUGIN_MUTATION = gql`
       description
       config
       supportedEvents
+    }
+  }
+`;
+
+export const VERIFY_AGE_MUTATION = gql`
+  mutation VerifyAge($basketId: String!, $verifierEmployeeId: Int!, $customerAge: Int!, $verificationMethod: String) {
+    verifyAge(basketId: $basketId, verifierEmployeeId: $verifierEmployeeId, customerAge: $customerAge, verificationMethod: $verificationMethod)
+  }
+`;
+
+export const CANCEL_AGE_VERIFICATION_MUTATION = gql`
+  mutation CancelAgeVerification($basketId: String!, $employeeId: Int!) {
+    cancelAgeVerification(basketId: $basketId, employeeId: $employeeId)
+  }
+`;
+
+export const ADD_VERIFIED_ITEM_MUTATION = gql`
+  mutation AddVerifiedItem($basketId: String!, $productId: String!, $productName: String!, $quantity: Int!, $price: Float!) {
+    addVerifiedItem(basketId: $basketId, productId: $productId, productName: $productName, quantity: $quantity, price: $price) {
+      id
+      productId
+      productName
+      quantity
+      price
     }
   }
 `;

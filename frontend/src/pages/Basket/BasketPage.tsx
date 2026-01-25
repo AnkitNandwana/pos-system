@@ -1,10 +1,10 @@
 import React from 'react';
-import { Container, Typography, Box } from '@mui/material';
+import { Container } from '@mui/material';
 import { useBasket } from '../../context/BasketContext';
 import ProductSearch from '../../components/ProductSearch';
 import BasketSummary from '../../components/BasketSummary';
 import RealtimeRecommendations from '../../components/RealtimeRecommendations';
-import AgeVerificationModal from '../../components/AgeVerificationModal';
+import AgeVerification from '../../components/AgeVerification';
 import CustomerInfo from '../../components/CustomerInfo';
 
 const BasketPage: React.FC = () => {
@@ -14,7 +14,7 @@ const BasketPage: React.FC = () => {
   if (!basket) {
     return (
       <Container>
-        <Typography variant="h5">No active basket</Typography>
+        <div>No active basket</div>
       </Container>
     );
   }
@@ -33,11 +33,7 @@ const BasketPage: React.FC = () => {
         </div>
       </div>
 
-      <AgeVerificationModal
-        open={ageVerification.required && !ageVerification.verified}
-        productId={ageVerification.productId}
-        minimumAge={ageVerification.minimumAge}
-      />
+      <AgeVerification />
     </Container>
   );
 };

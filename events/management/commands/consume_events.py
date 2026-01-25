@@ -79,11 +79,20 @@ class Command(BaseCommand):
                         ))
                         
                         # Send to WebSocket group
+                        formatted_recommendations = [{
+                            'id': rec['id'],
+                            'recommendedProductId': rec['recommended_product_id'],
+                            'recommendedProductName': rec['recommended_product_name'],
+                            'recommendedPrice': float(rec['recommended_price']),
+                            'reason': rec['reason'],
+                            'status': rec['status']
+                        } for rec in recommendations]
+                        
                         async_to_sync(channel_layer.group_send)(
                             f'recommendations_{basket_id}',
                             {
                                 'type': 'recommendation_message',
-                                'recommendations': recommendations
+                                'recommendations': formatted_recommendations
                             }
                         )
                         

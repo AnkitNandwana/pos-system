@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client';
 import { LOGOUT_MUTATION } from '../graphql/mutations';
 import { Employee, Terminal } from '../types';
 import {
@@ -36,7 +36,7 @@ const SessionHeader: React.FC<SessionHeaderProps> = ({
       localStorage.removeItem('token');
       onLogout();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Logout error:', error);
       localStorage.removeItem('token');
       onLogout();

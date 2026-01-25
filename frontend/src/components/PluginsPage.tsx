@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client';
 import { GET_PLUGINS } from '../graphql/queries';
 import { UPDATE_PLUGIN_MUTATION } from '../graphql/mutations';
 import { Plugin } from '../types';

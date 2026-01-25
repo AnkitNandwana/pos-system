@@ -66,3 +66,21 @@ export const GET_RECOMMENDATIONS = gql`
     }
   }
 `;
+
+export const ACCEPT_RECOMMENDATION = gql`
+  mutation AcceptRecommendation($recommendationId: Int!, $basketId: String!) {
+    acceptRecommendation(recommendationId: $recommendationId, basketId: $basketId) {
+      success
+      message
+    }
+  }
+`;
+
+export const REJECT_RECOMMENDATION = gql`
+  mutation RejectRecommendation($recommendationId: Int!) {
+    rejectRecommendation(recommendationId: $recommendationId) {
+      success
+      message
+    }
+  }
+`;

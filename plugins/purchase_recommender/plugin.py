@@ -4,6 +4,8 @@ from products.models import RecommendationRule
 from events.producer import event_producer
 from django.conf import settings
 from django.utils import timezone
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import logging
 
 logger = logging.getLogger(__name__)
@@ -38,10 +40,14 @@ class PurchaseRecommenderPlugin(BasePlugin):
     }
     
     def get_supported_events(self):
-        return ["ITEM_ADDED"]
+        events = ["item.added"]
+        logger.info(f"[RECOMMENDER] get_supported_events called, returning: {events}")
+        return events
     
     def handle_event(self, event_type, event_data):
         """Handle item added event and generate recommendations"""
+        logger.info(f"[RECOMMENDER] handle_event called with event_type: {event_type}")
+        
         # Check if plugin is enabled
         from plugins.models import PluginConfiguration
         try:
@@ -53,7 +59,7 @@ class PurchaseRecommenderPlugin(BasePlugin):
             logger.warning(f"[RECOMMENDER] Plugin configuration not found, skipping event {event_type}")
             return
             
-        if event_type == "ITEM_ADDED":
+        if event_type == "item.added":
             self._handle_item_added(event_data)
     
     def _handle_item_added(self, event_data):
@@ -88,6 +94,24 @@ class PurchaseRecommenderPlugin(BasePlugin):
                     'source_product_id': product_id,
                     'recommendations': recommendations
                 })
+                
+                # Send WebSocket message
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f'recommendations_{basket_id}',
+                        {
+                            'type': 'recommendation_message',
+                            'recommendations': [{
+                                'id': 0,
+                                'recommendedProductId': rec['product_id'],
+                                'recommendedProductName': rec['name'],
+                                'recommendedPrice': float(rec['price']),
+                                'reason': 'Frequently bought together',
+                                'status': 'PENDING'
+                            } for rec in recommendations]
+                        }
+                    )
                 
                 logger.info(f"[RECOMMENDER] Suggested {len(recommendations)} items for {product_id}")
             else:

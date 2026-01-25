@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLazyQuery, useMutation } from '@apollo/client/react';
+import { useLazyQuery } from '@apollo/client';
 import {
   Paper,
   TextField,
@@ -14,8 +14,8 @@ import {
 } from '@mui/material';
 import { Add, Search } from '@mui/icons-material';
 import { SEARCH_PRODUCTS } from '../graphql/queries';
-import { ADD_ITEM_MUTATION } from '../graphql/mutations';
 import { useBasket } from '../context/BasketContext';
+import { useProductAddition } from '../hooks/useProductAddition';
 import { Product } from '../types';
 
 interface SearchProductsData {
@@ -24,14 +24,10 @@ interface SearchProductsData {
 
 const ProductSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { state, dispatch } = useBasket();
+  const { state } = useBasket();
+  const { addProduct } = useProductAddition();
   
   const [searchProducts, { data, loading }] = useLazyQuery<SearchProductsData>(SEARCH_PRODUCTS);
-  const [addItem] = useMutation(ADD_ITEM_MUTATION, {
-    onCompleted: (data: any) => {
-      dispatch({ type: 'ADD_ITEM', payload: data.addItem });
-    }
-  });
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -43,27 +39,11 @@ const ProductSearch: React.FC = () => {
   const handleAddItem = (product: Product) => {
     if (!state.basket) return;
     
-    if (product.ageRestricted) {
-      dispatch({
-        type: 'SET_AGE_VERIFICATION',
-        payload: {
-          required: true,
-          verified: false,
-          productId: product.productId,
-          minimumAge: product.minimumAge
-        }
-      });
-      return;
-    }
-
-    addItem({
-      variables: {
-        basketId: state.basket.basketId,
-        productId: product.productId,
-        productName: product.name,
-        quantity: 1,
-        price: parseFloat(product.price.toString())
-      }
+    addProduct({
+      productId: product.productId,
+      name: product.name,
+      price: parseFloat(product.price.toString()),
+      quantity: 1
     });
   };
 
@@ -104,6 +84,7 @@ const ProductSearch: React.FC = () => {
                   edge="end"
                   onClick={() => handleAddItem(product)}
                   color="primary"
+                  disabled={state.verificationState === 'pending' || state.verificationState === 'verifying'}
                 >
                   <Add />
                 </IconButton>
