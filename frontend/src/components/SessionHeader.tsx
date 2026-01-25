@@ -12,16 +12,25 @@ import {
   Avatar,
   CircularProgress
 } from '@mui/material';
-import { Logout as LogoutIcon, Person, Computer, Settings } from '@mui/icons-material';
+import { Logout as LogoutIcon, Person, Computer, Settings, ArrowBack } from '@mui/icons-material';
 
 interface SessionHeaderProps {
   employee: Employee;
   terminal: Terminal;
   onLogout: () => void;
   onPluginsClick?: () => void;
+  onBackToTerminal?: () => void;
+  currentView?: 'landing' | 'basket' | 'plugins';
 }
 
-const SessionHeader: React.FC<SessionHeaderProps> = ({ employee, terminal, onLogout, onPluginsClick }) => {
+const SessionHeader: React.FC<SessionHeaderProps> = ({ 
+  employee, 
+  terminal, 
+  onLogout, 
+  onPluginsClick, 
+  onBackToTerminal,
+  currentView 
+}) => {
   const [logout, { loading }] = useMutation(LOGOUT_MUTATION, {
     onCompleted: () => {
       localStorage.removeItem('token');
@@ -70,14 +79,29 @@ const SessionHeader: React.FC<SessionHeaderProps> = ({ employee, terminal, onLog
           <Typography variant="body2" className="text-blue-100">
             Login: {new Date(terminal.loginTime).toLocaleTimeString()}
           </Typography>
-          <Button
-            variant="contained"
-            onClick={onPluginsClick}
-            startIcon={<Settings />}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold"
-          >
-            Plugins
-          </Button>
+          
+          {currentView === 'plugins' && onBackToTerminal && (
+            <Button
+              variant="outlined"
+              onClick={onBackToTerminal}
+              startIcon={<ArrowBack />}
+              className="text-white border-white hover:bg-blue-700"
+            >
+              Back to Terminal
+            </Button>
+          )}
+          
+          {currentView !== 'plugins' && onPluginsClick && (
+            <Button
+              variant="contained"
+              onClick={onPluginsClick}
+              startIcon={<Settings />}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+            >
+              Plugins
+            </Button>
+          )}
+          
           <Button
             variant="contained"
             color="error"

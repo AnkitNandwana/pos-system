@@ -8,4 +8,14 @@ from .types import RecommendationType
 class RecommendationQueries:
     @strawberry.field
     def recommendations(self, basket_id: str) -> List[RecommendationType]:
-        return list(Recommendation.objects.filter(basket_id=basket_id).order_by('-recommended_at'))
+        return list(Recommendation.objects.filter(
+            basket_id=basket_id, 
+            status='PENDING'
+        ).order_by('-recommended_at'))
+    
+    @strawberry.field
+    def pending_recommendations(self, basket_id: str) -> List[RecommendationType]:
+        return list(Recommendation.objects.filter(
+            basket_id=basket_id,
+            status='PENDING'
+        ).order_by('-recommended_at'))

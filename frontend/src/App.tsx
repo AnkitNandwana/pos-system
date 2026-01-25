@@ -1,29 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
+import { BasketProvider } from './context/BasketContext';
 import LoginPage from './components/LoginPage';
-import POSTerminal from './components/POSTerminal';
-import { Employee, Terminal, LoginResponse } from './types';
+import SessionHeader from './components/SessionHeader';
+import LandingPage from './pages/Landing/LandingPage';
+import BasketPage from './pages/Basket/BasketPage';
+import StartBasketModal from './components/StartBasketModal';
+import PluginsPage from './components/PluginsPage';
+import { Employee, Terminal, LoginResponse, Basket } from './types';
+import { useBasket } from './context/BasketContext';
 import './App.css';
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    primary: { main: '#1976d2' },
+    secondary: { main: '#dc004e' },
   },
 });
 
-function App() {
+function AppContent() {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentView, setCurrentView] = useState<'landing' | 'basket' | 'plugins'>('landing');
+  const [showStartBasket, setShowStartBasket] = useState(false);
+  
+  const { state, dispatch } = useBasket();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -50,24 +53,72 @@ function App() {
     setEmployee(null);
     setTerminal(null);
     setIsLoggedIn(false);
+    setCurrentView('landing');
+    dispatch({ type: 'CLEAR_BASKET' });
     
     localStorage.removeItem('token');
     localStorage.removeItem('employee');
     localStorage.removeItem('terminal');
   };
 
+  const handleStartBasket = () => {
+    setShowStartBasket(true);
+  };
+
+  const handleBasketCreated = (basket: Basket) => {
+    dispatch({ type: 'SET_BASKET', payload: basket });
+    if (basket.customer) {
+      dispatch({ type: 'SET_CUSTOMER', payload: basket.customer });
+    }
+    setCurrentView('basket');
+    setShowStartBasket(false);
+  };
+
+  if (!isLoggedIn || !employee || !terminal) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <SessionHeader
+        employee={employee}
+        terminal={terminal}
+        onLogout={handleLogout}
+        onPluginsClick={() => setCurrentView('plugins')}
+        onBackToTerminal={() => setCurrentView(state.basket ? 'basket' : 'landing')}
+        currentView={currentView}
+      />
+      
+      {currentView === 'landing' && (
+        <LandingPage
+          employee={employee}
+          terminal={terminal}
+          onStartBasket={handleStartBasket}
+        />
+      )}
+      
+      {currentView === 'basket' && <BasketPage />}
+      
+      {currentView === 'plugins' && <PluginsPage />}
+
+      <StartBasketModal
+        open={showStartBasket}
+        onClose={() => setShowStartBasket(false)}
+        employee={employee}
+        terminal={terminal}
+        onBasketCreated={handleBasketCreated}
+      />
+    </div>
+  );
+}
+
+function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {!isLoggedIn || !employee || !terminal ? (
-        <LoginPage onLoginSuccess={handleLoginSuccess} />
-      ) : (
-        <POSTerminal
-          employee={employee}
-          terminal={terminal}
-          onLogout={handleLogout}
-        />
-      )}
+      <BasketProvider>
+        <AppContent />
+      </BasketProvider>
     </ThemeProvider>
   );
 }

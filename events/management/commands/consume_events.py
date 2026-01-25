@@ -2,6 +2,8 @@ from django.core.management.base import BaseCommand
 from kafka import KafkaConsumer
 from django.conf import settings
 from plugins.registry import plugin_registry
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import json
 import logging
 import sys
@@ -33,6 +35,9 @@ class Command(BaseCommand):
         plugin_registry.register(FraudDetectionPlugin)
         plugin_registry.register(AgeVerificationPlugin)
         
+        # Get channel layer for WebSocket communication
+        channel_layer = get_channel_layer()
+        
         # Create Kafka consumer
         consumer = KafkaConsumer(
             settings.KAFKA_TOPIC,
@@ -58,6 +63,31 @@ class Command(BaseCommand):
                 
                 # Route event to plugins
                 plugin_registry.route_event(event_type, event_data)
+                
+                # Handle recommendation events for real-time updates
+                if event_type == 'RECOMMENDATION_SUGGESTED':
+                    basket_id = event_data.get('basket_id')
+                    if basket_id and channel_layer:
+                        # Get fresh recommendations from database
+                        from plugins.purchase_recommender.models import Recommendation
+                        recommendations = list(Recommendation.objects.filter(
+                            basket_id=basket_id,
+                            status='PENDING'
+                        ).values(
+                            'id', 'recommended_product_id', 'recommended_product_name',
+                            'recommended_price', 'reason', 'status'
+                        ))
+                        
+                        # Send to WebSocket group
+                        async_to_sync(channel_layer.group_send)(
+                            f'recommendations_{basket_id}',
+                            {
+                                'type': 'recommendation_message',
+                                'recommendations': recommendations
+                            }
+                        )
+                        
+                        self.stdout.write(f"Sent {len(recommendations)} recommendations to WebSocket group")
                 
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING('Shutting down consumer...'))

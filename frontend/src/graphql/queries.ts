@@ -12,3 +12,57 @@ export const GET_PLUGINS = gql`
     }
   }
 `;
+
+export const SEARCH_PRODUCTS = gql`
+  query SearchProducts($query: String!) {
+    searchProducts(query: $query) {
+      productId
+      name
+      price
+      category
+      ageRestricted
+      minimumAge
+    }
+  }
+`;
+
+export const GET_BASKET_DETAILS = gql`
+  query GetBasketDetails($basketId: String!) {
+    basketDetails(basketId: $basketId) {
+      basketId
+      status
+      customerId
+      customer {
+        customerId
+        identifier
+        firstName
+        lastName
+        email
+        phone
+        loyaltyPoints
+        tier
+      }
+      items {
+        id
+        productId
+        productName
+        quantity
+        price
+      }
+      totalAmount
+    }
+  }
+`;
+
+export const GET_RECOMMENDATIONS = gql`
+  query GetRecommendations($basketId: String!) {
+    pendingRecommendations(basketId: $basketId) {
+      id
+      recommendedProductId
+      recommendedProductName
+      recommendedPrice
+      reason
+      status
+    }
+  }
+`;

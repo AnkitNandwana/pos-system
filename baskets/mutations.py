@@ -15,7 +15,8 @@ class BasketMutations:
         employee = Employee.objects.get(id=employee_id)
         basket = Basket.objects.create(
             basket_id=f"basket_{uuid.uuid4().hex[:8]}",
-            employee=employee
+            employee=employee,
+            customer_id=customer_identifier
         )
         
         # Publish BASKET_STARTED event
@@ -57,6 +58,44 @@ class BasketMutations:
             'product_name': product_name,
             'quantity': quantity,
             'price': price
+        })
+        
+        return item
+    
+    @strawberry.mutation
+    def remove_item(self, basket_id: str, item_id: str) -> bool:
+        try:
+            basket = Basket.objects.get(basket_id=basket_id)
+            item = BasketItem.objects.get(id=item_id, basket=basket)
+            
+            # Publish event before deletion
+            event_producer.publish(settings.KAFKA_TOPIC, {
+                'event_type': 'ITEM_REMOVED',
+                'timestamp': timezone.now().isoformat(),
+                'basket_id': basket_id,
+                'product_id': item.product_id,
+                'item_id': item_id
+            })
+            
+            item.delete()
+            return True
+        except (Basket.DoesNotExist, BasketItem.DoesNotExist):
+            return False
+    
+    @strawberry.mutation
+    def update_quantity(self, basket_id: str, item_id: str, quantity: int) -> BasketItemType:
+        basket = Basket.objects.get(basket_id=basket_id)
+        item = BasketItem.objects.get(id=item_id, basket=basket)
+        item.quantity = quantity
+        item.save()
+        
+        # Publish event
+        event_producer.publish(settings.KAFKA_TOPIC, {
+            'event_type': 'ITEM_QUANTITY_UPDATED',
+            'timestamp': timezone.now().isoformat(),
+            'basket_id': basket_id,
+            'item_id': item_id,
+            'new_quantity': quantity
         })
         
         return item

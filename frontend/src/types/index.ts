@@ -12,13 +12,61 @@ export interface Terminal {
   isActive: boolean;
 }
 
+export interface Customer {
+  customerId: string;
+  identifier: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  loyaltyPoints: number;
+  tier: string;
+}
+
+export interface Product {
+  productId: string;
+  name: string;
+  price: number;
+  category: string;
+  ageRestricted: boolean;
+  minimumAge?: number;
+}
+
+export interface BasketItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
+
 export interface Basket {
   basketId: string;
   status: string;
+  customerId?: string;
+  customer?: Customer;
+  items: BasketItem[];
+  totalAmount: number;
   employee: {
     id: number;
     username: string;
   };
+}
+
+export interface Recommendation {
+  id: number;
+  recommendedProductId: string;
+  recommendedProductName: string;
+  recommendedPrice: number;
+  reason: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+}
+
+export interface AgeVerificationState {
+  required: boolean;
+  verified: boolean;
+  productId?: string;
+  minimumAge?: number;
 }
 
 export interface Plugin {

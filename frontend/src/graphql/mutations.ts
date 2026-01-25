@@ -30,14 +30,81 @@ export const LOGOUT_MUTATION = gql`
 `;
 
 export const START_BASKET_MUTATION = gql`
-  mutation StartBasket($employeeId: Int!, $terminalId: String!) {
-    startBasket(employeeId: $employeeId, terminalId: $terminalId) {
+  mutation StartBasket($employeeId: Int!, $terminalId: String!, $customerIdentifier: String) {
+    startBasket(employeeId: $employeeId, terminalId: $terminalId, customerIdentifier: $customerIdentifier) {
       basketId
       status
+      customerId
+      customer {
+        customerId
+        identifier
+        firstName
+        lastName
+        email
+        phone
+        loyaltyPoints
+        tier
+      }
+      items {
+        id
+        productId
+        productName
+        quantity
+        price
+      }
+      totalAmount
       employee {
         id
         username
       }
+    }
+  }
+`;
+
+export const ADD_ITEM_MUTATION = gql`
+  mutation AddItem($basketId: String!, $productId: String!, $productName: String!, $quantity: Int!, $price: Float!) {
+    addItem(basketId: $basketId, productId: $productId, productName: $productName, quantity: $quantity, price: $price) {
+      id
+      productId
+      productName
+      quantity
+      price
+    }
+  }
+`;
+
+export const REMOVE_ITEM_MUTATION = gql`
+  mutation RemoveItem($basketId: String!, $itemId: String!) {
+    removeItem(basketId: $basketId, itemId: $itemId) {
+      success
+      message
+    }
+  }
+`;
+
+export const UPDATE_QUANTITY_MUTATION = gql`
+  mutation UpdateQuantity($basketId: String!, $itemId: String!, $quantity: Int!) {
+    updateQuantity(basketId: $basketId, itemId: $itemId, quantity: $quantity) {
+      id
+      quantity
+    }
+  }
+`;
+
+export const ACCEPT_RECOMMENDATION_MUTATION = gql`
+  mutation AcceptRecommendation($recommendationId: Int!) {
+    acceptRecommendation(recommendationId: $recommendationId) {
+      id
+      status
+    }
+  }
+`;
+
+export const REJECT_RECOMMENDATION_MUTATION = gql`
+  mutation RejectRecommendation($recommendationId: Int!) {
+    rejectRecommendation(recommendationId: $recommendationId) {
+      id
+      status
     }
   }
 `;

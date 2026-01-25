@@ -42,6 +42,17 @@ class PurchaseRecommenderPlugin(BasePlugin):
     
     def handle_event(self, event_type, event_data):
         """Handle item added event and generate recommendations"""
+        # Check if plugin is enabled
+        from plugins.models import PluginConfiguration
+        try:
+            plugin_config = PluginConfiguration.objects.get(name=self.name)
+            if not plugin_config.enabled:
+                logger.info(f"[RECOMMENDER] Plugin disabled, skipping event {event_type}")
+                return
+        except PluginConfiguration.DoesNotExist:
+            logger.warning(f"[RECOMMENDER] Plugin configuration not found, skipping event {event_type}")
+            return
+            
         if event_type == "ITEM_ADDED":
             self._handle_item_added(event_data)
     
@@ -63,7 +74,10 @@ class PurchaseRecommenderPlugin(BasePlugin):
                         basket_id=basket_id,
                         source_product_id=product_id,
                         recommended_product_id=rec['product_id'],
-                        recommended_product_name=rec['name']
+                        recommended_product_name=rec['name'],
+                        recommended_price=float(rec['price']),
+                        reason='Frequently bought together',
+                        status='PENDING'
                     )
                 
                 # Publish recommendation event
