@@ -142,3 +142,9 @@ export const ADD_VERIFIED_ITEM_MUTATION = gql`
     }
   }
 `;
+
+export const PROCESS_PAYMENT_MUTATION = gql`
+  mutation ProcessPayment($basketId: String!, $terminalId: String!, $employeeId: Int!, $totalAmount: Float!, $paymentMethod: String!) {
+    processPayment(basketId: $basketId, terminalId: $terminalId, employeeId: $employeeId, totalAmount: $totalAmount, paymentMethod: $paymentMethod)
+  }
+`;

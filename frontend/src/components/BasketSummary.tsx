@@ -112,9 +112,12 @@ const BasketSummary: React.FC<BasketSummaryProps> = ({ basket }) => {
         variant="contained"
         fullWidth
         size="large"
-        disabled={basket.items.length === 0}
+        disabled={basket.items.length === 0 || basket.status === 'PAID'}
+        onClick={() => {
+          dispatch({ type: 'SHOW_PAYMENT_MODAL', payload: true });
+        }}
       >
-        Proceed to Checkout
+        {basket.status === 'PAID' ? 'Basket Completed' : 'Checkout'}
       </Button>
     </Paper>
   );

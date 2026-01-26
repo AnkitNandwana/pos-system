@@ -2,18 +2,27 @@ import React from 'react';
 import { Paper, Typography, Box, Chip } from '@mui/material';
 import { Person, Star } from '@mui/icons-material';
 import { Customer } from '../types';
+import { useBasket } from '../context/BasketContext';
 
 interface CustomerInfoProps {
   customer: Customer | null;
 }
 
 const CustomerInfo: React.FC<CustomerInfoProps> = ({ customer }) => {
+  const { state } = useBasket();
+  const { basket } = state;
+
   if (!customer) {
     return (
       <Paper className="p-4">
-        <Box className="flex items-center space-x-2 mb-2">
-          <Person className="text-gray-400" />
-          <Typography variant="h6">Guest Customer</Typography>
+        <Box className="flex items-center justify-between mb-2">
+          <Box className="flex items-center space-x-2">
+            <Person className="text-gray-400" />
+            <Typography variant="h6">Guest Customer</Typography>
+          </Box>
+          {basket?.status === 'PAID' && (
+            <Chip label="COMPLETED" color="success" size="small" />
+          )}
         </Box>
         <Typography variant="body2" className="text-gray-600">
           No customer information available
@@ -29,12 +38,17 @@ const CustomerInfo: React.FC<CustomerInfoProps> = ({ customer }) => {
           <Person className="text-blue-600" />
           <Typography variant="h6">Customer Info</Typography>
         </Box>
-        <Chip 
-          icon={<Star />} 
-          label={customer.tier} 
-          color="primary" 
-          size="small" 
-        />
+        <Box className="flex space-x-2">
+          <Chip 
+            icon={<Star />} 
+            label={customer.tier} 
+            color="primary" 
+            size="small" 
+          />
+          {basket?.status === 'PAID' && (
+            <Chip label="COMPLETED" color="success" size="small" />
+          )}
+        </Box>
       </Box>
       
       <Box className="space-y-2">

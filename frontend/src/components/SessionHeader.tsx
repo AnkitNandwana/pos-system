@@ -82,10 +82,18 @@ const SessionHeader: React.FC<SessionHeaderProps> = ({
           
           {currentView === 'plugins' && onBackToTerminal && (
             <Button
-              variant="outlined"
+              variant="contained"
               onClick={onBackToTerminal}
               startIcon={<ArrowBack />}
-              className="text-white border-white hover:bg-blue-700"
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                }
+              }}
             >
               Back to Terminal
             </Button>

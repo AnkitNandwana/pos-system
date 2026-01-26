@@ -1,19 +1,29 @@
 import React from 'react';
 import { Container } from '@mui/material';
+import { useMutation } from '@apollo/client';
 import { useBasket } from '../../context/BasketContext';
 import { useBasketDetails } from '../../hooks/useBasketDetails';
+import { START_BASKET_MUTATION } from '../../graphql/mutations';
 import ProductSearch from '../../components/ProductSearch';
 import BasketSummary from '../../components/BasketSummary';
 import RealtimeRecommendations from '../../components/RealtimeRecommendations';
 import AgeVerification from '../../components/AgeVerification';
 import CustomerInfo from '../../components/CustomerInfo';
+import PaymentModal from '../../components/PaymentModal';
+import ThankYouScreen from '../../components/ThankYouScreen';
 
 const BasketPage: React.FC = () => {
-  const { state } = useBasket();
-  const { basket, customer, ageVerification } = state;
+  const { state, dispatch } = useBasket();
+  const { basket, customer, showPaymentModal, showThankYou } = state;
   
   // Fetch basket details with polling for customer updates
   useBasketDetails(basket?.basketId || null);
+
+  const [startBasket] = useMutation(START_BASKET_MUTATION, {
+    onCompleted: (data) => {
+      dispatch({ type: 'SET_BASKET', payload: data.startBasket });
+    }
+  });
 
   if (!basket) {
     return (
@@ -38,6 +48,26 @@ const BasketPage: React.FC = () => {
       </div>
 
       <AgeVerification />
+      
+      {basket && (
+        <>
+          <PaymentModal
+            open={showPaymentModal}
+            onClose={() => dispatch({ type: 'SHOW_PAYMENT_MODAL', payload: false })}
+            totalAmount={basket.totalAmount}
+            basketId={basket.basketId}
+            terminalId={localStorage.getItem('terminalId') || 'terminal-1'}
+            employeeId={parseInt(localStorage.getItem('employeeId') || '1')}
+          />
+          
+          <ThankYouScreen
+            open={showThankYou}
+            onStartNewBasket={() => {}}
+            totalAmount={basket.totalAmount}
+            basketId={basket.basketId}
+          />
+        </>
+      )}
     </Container>
   );
 };

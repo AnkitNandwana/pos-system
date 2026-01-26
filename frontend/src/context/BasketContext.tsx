@@ -11,6 +11,9 @@ interface BasketState {
   pluginStatus: { [key: string]: boolean };
   verificationState: 'idle' | 'pending' | 'required' | 'verifying' | 'verified' | 'failed';
   pendingItems: RestrictedItem[];
+  paymentState: 'idle' | 'processing' | 'completed' | 'failed';
+  showPaymentModal: boolean;
+  showThankYou: boolean;
 }
 
 type BasketAction =
@@ -30,7 +33,10 @@ type BasketAction =
   | { type: 'CLEAR_PENDING_ITEMS' }
   | { type: 'AGE_VERIFICATION_REQUIRED'; payload: { restrictedItems: RestrictedItem[]; minimumAge: number } }
   | { type: 'AGE_VERIFICATION_COMPLETED'; payload: { customerAge: number; verificationMethod: string } }
-  | { type: 'AGE_VERIFICATION_FAILED'; payload: { reason: string } };
+  | { type: 'AGE_VERIFICATION_FAILED'; payload: { reason: string } }
+  | { type: 'SET_PAYMENT_STATE'; payload: 'idle' | 'processing' | 'completed' | 'failed' }
+  | { type: 'SHOW_PAYMENT_MODAL'; payload: boolean }
+  | { type: 'SHOW_THANK_YOU'; payload: boolean };
 
 const initialState: BasketState = {
   basket: null,
@@ -42,6 +48,9 @@ const initialState: BasketState = {
   pluginStatus: {},
   verificationState: 'idle',
   pendingItems: [],
+  paymentState: 'idle',
+  showPaymentModal: false,
+  showThankYou: false,
 };
 
 function basketReducer(state: BasketState, action: BasketAction): BasketState {
@@ -134,6 +143,12 @@ function basketReducer(state: BasketState, action: BasketAction): BasketState {
         },
         error: action.payload.reason
       };
+    case 'SET_PAYMENT_STATE':
+      return { ...state, paymentState: action.payload };
+    case 'SHOW_PAYMENT_MODAL':
+      return { ...state, showPaymentModal: action.payload };
+    case 'SHOW_THANK_YOU':
+      return { ...state, showThankYou: action.payload };
     default:
       return state;
   }
