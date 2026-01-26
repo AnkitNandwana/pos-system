@@ -54,7 +54,7 @@ class StateManager:
         """Update employee session state"""
         self._cleanup_expired_state()
         
-        if event_type == "employee.login":
+        if event_type == "EMPLOYEE_LOGIN":
             if employee_id not in self.employee_sessions:
                 self.employee_sessions[employee_id] = {
                     'terminal_ids': set(),
@@ -64,32 +64,32 @@ class StateManager:
                 }
             self.employee_sessions[employee_id]['terminal_ids'].add(terminal_id)
         
-        elif event_type == "employee.logout":
+        elif event_type == "EMPLOYEE_LOGOUT":
             if employee_id in self.employee_sessions:
                 self.employee_sessions[employee_id]['terminal_ids'].discard(terminal_id)
                 if not self.employee_sessions[employee_id]['terminal_ids']:
                     del self.employee_sessions[employee_id]
         
-        elif event_type == "payment.completed" and employee_id in self.employee_sessions:
+        elif event_type == "PAYMENT_COMPLETED" and employee_id in self.employee_sessions:
             amount = event_data.get('amount', 0)
             self.employee_sessions[employee_id]['total_payments'] += amount
     
     def update_terminal_state(self, terminal_id, employee_id, event_type):
         """Update terminal state"""
-        if event_type == "employee.login":
+        if event_type == "EMPLOYEE_LOGIN":
             self.terminal_states[terminal_id] = {
                 'current_employee_id': employee_id,
                 'session_start': datetime.now(),
                 'basket_count': 0
             }
-        elif event_type == "basket.started" and terminal_id in self.terminal_states:
+        elif event_type == "BASKET_STARTED" and terminal_id in self.terminal_states:
             self.terminal_states[terminal_id]['basket_count'] += 1
-        elif event_type == "employee.logout":
+        elif event_type == "EMPLOYEE_LOGOUT":
             self.terminal_states.pop(terminal_id, None)
     
     def update_basket_state(self, basket_id, employee_id, terminal_id, event_type, event_data):
         """Update basket state"""
-        if event_type == "basket.started":
+        if event_type == "BASKET_STARTED":
             self.basket_states[basket_id] = {
                 'employee_id': employee_id,
                 'terminal_id': terminal_id,
@@ -106,9 +106,9 @@ class StateManager:
             if event_type == "item.added":
                 self.basket_states[basket_id]['item_count'] += 1
                 self.basket_states[basket_id]['item_velocity'].append(datetime.now())
-            elif event_type == "customer.identified":
+            elif event_type == "CUSTOMER_IDENTIFIED":
                 self.basket_states[basket_id]['customer_identified'] = True
-            elif event_type == "payment.completed":
+            elif event_type == "PAYMENT_COMPLETED":
                 self.basket_states[basket_id]['payment_amount'] = event_data.get('amount', 0)
     
     def get_employee_session(self, employee_id):

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
 import { BasketProvider } from './context/BasketContext';
 import LoginPage from './components/LoginPage';
 import SessionHeader from './components/SessionHeader';
@@ -8,8 +8,12 @@ import LandingPage from './pages/Landing/LandingPage';
 import BasketPage from './pages/Basket/BasketPage';
 import StartBasketModal from './components/StartBasketModal';
 import PluginsPage from './components/PluginsPage';
+import FraudAlertDialog from './components/FraudAlertDialog';
+
 import { Employee, Terminal, LoginResponse, Basket } from './types';
 import { useBasket } from './context/BasketContext';
+// import { useSessionMonitor } from './hooks/useSessionMonitor';
+import { useFraudDetection } from './hooks/useFraudDetection';
 import './App.css';
 
 const theme = createTheme({
@@ -25,8 +29,39 @@ function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentView, setCurrentView] = useState<'landing' | 'basket' | 'plugins'>('landing');
   const [showStartBasket, setShowStartBasket] = useState(false);
+  const [showSessionTerminated, setShowSessionTerminated] = useState(false);
+  const [fraudAlert, setFraudAlert] = useState<any>(null);
+  const [showFraudAlert, setShowFraudAlert] = useState(false);
   
   const { state, dispatch } = useBasket();
+
+  const handleFraudAlert = useCallback((alert: any) => {
+    setFraudAlert(alert);
+    setShowFraudAlert(true);
+  }, []);
+
+  const handleFraudAlertAcknowledge = useCallback(() => {
+    setShowFraudAlert(false);
+    setFraudAlert(null);
+  }, []);
+
+  const handleSessionTerminated = useCallback(() => {
+    setShowSessionTerminated(true);
+  }, []);
+
+  const handleSessionTerminatedClose = useCallback(() => {
+    setShowSessionTerminated(false);
+    handleLogout();
+  }, []);
+
+  // Monitor fraud detection
+  const { isConnected } = useFraudDetection({
+    terminalId: terminal?.terminalId || null,
+    onFraudAlert: handleFraudAlert,
+    enabled: isLoggedIn
+  });
+
+  console.log('Fraud detection WebSocket connected:', isConnected, 'Terminal ID:', terminal?.terminalId);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -107,6 +142,29 @@ function AppContent() {
         employee={employee}
         terminal={terminal}
         onBasketCreated={handleBasketCreated}
+      />
+
+      {/* Session Terminated Dialog */}
+      <Dialog open={showSessionTerminated} maxWidth="sm" fullWidth>
+        <DialogTitle>Session Terminated</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Your session has been terminated because you logged in from another location.
+            Please log in again to continue.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSessionTerminatedClose} variant="contained" color="primary">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Fraud Alert Dialog */}
+      <FraudAlertDialog
+        open={showFraudAlert}
+        alert={fraudAlert}
+        onAcknowledge={handleFraudAlertAcknowledge}
       />
     </div>
   );

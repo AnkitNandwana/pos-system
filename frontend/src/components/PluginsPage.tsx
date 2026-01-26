@@ -21,6 +21,13 @@ const PluginsPage: React.FC = () => {
     onCompleted: () => refetch()
   });
 
+  const formatPluginName = (name: string) => {
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const handleTogglePlugin = async (plugin: Plugin) => {
     await updatePlugin({
       variables: {
@@ -89,7 +96,7 @@ const PluginsPage: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-xl font-semibold text-gray-800">{plugin.name}</h3>
+                    <h3 className="text-xl font-semibold text-gray-800">{formatPluginName(plugin.name)}</h3>
                     <button
                       onClick={() => handleTogglePlugin(plugin)}
                       className="flex items-center space-x-1 text-sm"

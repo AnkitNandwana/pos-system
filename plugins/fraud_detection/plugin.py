@@ -17,8 +17,9 @@ class FraudDetectionPlugin(BasePlugin):
     
     def get_supported_events(self):
         return [
-            "employee.login", "basket.started", "item.added",
-            "customer.identified", "payment.completed", "employee.logout"
+            "EMPLOYEE_LOGIN", "EMPLOYEE_LOGOUT", "SESSION_TERMINATED",
+            "BASKET_STARTED", "item.added", "CUSTOMER_IDENTIFIED", 
+            "PAYMENT_COMPLETED"
         ]
     
     def handle_event(self, event_type, event_data):
@@ -64,11 +65,11 @@ class FraudDetectionPlugin(BasePlugin):
     def _should_evaluate_rule(self, rule, event_type):
         """Check if rule should be evaluated for this event type"""
         rule_event_mapping = {
-            'multiple_terminals': ['employee.login'],
+            'multiple_terminals': ['EMPLOYEE_LOGIN'],
             'rapid_items': ['item.added'],
-            'high_value_payment': ['payment.completed'],
-            'anonymous_payment': ['payment.completed'],
-            'rapid_checkout': ['payment.completed']
+            'high_value_payment': ['PAYMENT_COMPLETED'],
+            'anonymous_payment': ['PAYMENT_COMPLETED'],
+            'rapid_checkout': ['PAYMENT_COMPLETED']
         }
         return event_type in rule_event_mapping.get(rule.rule_id, [])
     
@@ -186,6 +187,40 @@ class FraudDetectionPlugin(BasePlugin):
                 severity=rule.severity,
                 details=violation_details
             )
+            
+            # Send real-time alert to WebSocket
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            
+            channel_layer = get_channel_layer()
+            
+            # For multiple terminals fraud, send alert to all affected terminals
+            if rule.rule_id == 'multiple_terminals' and 'terminals' in violation_details:
+                for affected_terminal_id in violation_details['terminals']:
+                    async_to_sync(channel_layer.group_send)(
+                        f'fraud_alerts_{affected_terminal_id}',
+                        {
+                            'type': 'fraud_alert',
+                            'alert_id': str(alert.alert_id),
+                            'rule_id': rule.rule_id,
+                            'severity': rule.severity,
+                            'details': violation_details,
+                            'timestamp': alert.timestamp.isoformat()
+                        }
+                    )
+            else:
+                # Send to current terminal
+                async_to_sync(channel_layer.group_send)(
+                    f'fraud_alerts_{terminal_id}',
+                    {
+                        'type': 'fraud_alert',
+                        'alert_id': str(alert.alert_id),
+                        'rule_id': rule.rule_id,
+                        'severity': rule.severity,
+                        'details': violation_details,
+                        'timestamp': alert.timestamp.isoformat()
+                    }
+                )
             
             # Publish fraud alert event
             alert_event = {

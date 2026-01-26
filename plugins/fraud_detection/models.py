@@ -37,6 +37,7 @@ class FraudAlert(models.Model):
     basket_id = models.CharField(max_length=100, null=True, blank=True)
     severity = models.CharField(max_length=10)
     details = models.JSONField()
+    acknowledged = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
     
     class Meta:

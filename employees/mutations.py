@@ -9,6 +9,8 @@ from terminals.types import TerminalType
 from terminals.services import TerminalService
 from events.producer import event_producer
 from events.schemas import EmployeeLoginEvent, EmployeeLogoutEvent, SessionTerminatedEvent
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
@@ -37,9 +39,22 @@ class Mutation:
             raise Exception("Invalid credentials")
         
         # Terminate existing active sessions
+        channel_layer = get_channel_layer()
         active_terminals = Terminal.objects.filter(employee=employee, is_active=True)
         for old_terminal in active_terminals:
             TerminalService.terminate_active_sessions(employee)
+            
+            # Send real-time session termination to WebSocket
+            async_to_sync(channel_layer.group_send)(
+                f'session_{old_terminal.terminal_id}',
+                {
+                    'type': 'session_terminated',
+                    'message': 'Your session has been terminated due to login from another location',
+                    'reason': 'auto_logout',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            
             # Publish session terminated event
             event_data = {
                 'event_type': 'SESSION_TERMINATED',
