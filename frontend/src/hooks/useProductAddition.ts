@@ -15,6 +15,7 @@ export const useProductAddition = () => {
     quantity?: number;
   }) => {
     const isAgeVerificationActive = pluginStatus?.['age_verification'] || false;
+    const terminalId = localStorage.getItem('terminal') ? JSON.parse(localStorage.getItem('terminal')!).terminalId : null;
     
     if (!isAgeVerificationActive) {
       // Direct addition - plugin inactive
@@ -25,7 +26,8 @@ export const useProductAddition = () => {
             productId: product.productId,
             productName: product.name,
             quantity: product.quantity || 1,
-            price: product.price
+            price: product.price,
+            terminalId: terminalId
           }
         });
         
@@ -49,7 +51,8 @@ export const useProductAddition = () => {
           productId: product.productId,
           productName: product.name,
           quantity: product.quantity || 1,
-          price: product.price
+          price: product.price,
+          terminalId: terminalId
         }
       });
       

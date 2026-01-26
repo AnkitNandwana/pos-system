@@ -66,7 +66,7 @@ class FraudDetectionPlugin(BasePlugin):
         """Check if rule should be evaluated for this event type"""
         rule_event_mapping = {
             'multiple_terminals': ['EMPLOYEE_LOGIN'],
-            'rapid_items': ['item.added'],
+            'rapid_items': ['BASKET_STARTED', 'item.added'],  # Need BASKET_STARTED to initialize state
             'high_value_payment': ['PAYMENT_COMPLETED'],
             'anonymous_payment': ['PAYMENT_COMPLETED'],
             'rapid_checkout': ['PAYMENT_COMPLETED']
@@ -78,6 +78,10 @@ class FraudDetectionPlugin(BasePlugin):
         if rule.rule_id == 'multiple_terminals':
             return self._check_multiple_terminals(rule, employee_id)
         elif rule.rule_id == 'rapid_items':
+            # For BASKET_STARTED events, just initialize state (no violation yet)
+            event_type = event_data.get('event_type')
+            if event_type == 'BASKET_STARTED':
+                return None  # Just initializing, no violation
             return self._check_rapid_items(rule, basket_id)
         elif rule.rule_id == 'high_value_payment':
             return self._check_high_value_payment(rule, event_data, employee_id)
@@ -178,6 +182,12 @@ class FraudDetectionPlugin(BasePlugin):
         try:
             employee = Employee.objects.get(id=employee_id)
             
+            # Get terminal_id from basket state if not provided
+            if not terminal_id and basket_id:
+                basket_state = state_manager.get_basket_state(basket_id)
+                if basket_state:
+                    terminal_id = basket_state.get('terminal_id')
+            
             # Create alert record
             alert = FraudAlert.objects.create(
                 rule=rule,
@@ -210,17 +220,18 @@ class FraudDetectionPlugin(BasePlugin):
                     )
             else:
                 # Send to current terminal
-                async_to_sync(channel_layer.group_send)(
-                    f'fraud_alerts_{terminal_id}',
-                    {
-                        'type': 'fraud_alert',
-                        'alert_id': str(alert.alert_id),
-                        'rule_id': rule.rule_id,
-                        'severity': rule.severity,
-                        'details': violation_details,
-                        'timestamp': alert.timestamp.isoformat()
-                    }
-                )
+                if terminal_id:
+                    async_to_sync(channel_layer.group_send)(
+                        f'fraud_alerts_{terminal_id}',
+                        {
+                            'type': 'fraud_alert',
+                            'alert_id': str(alert.alert_id),
+                            'rule_id': rule.rule_id,
+                            'severity': rule.severity,
+                            'details': violation_details,
+                            'timestamp': alert.timestamp.isoformat()
+                        }
+                    )
             
             # Publish fraud alert event
             alert_event = {

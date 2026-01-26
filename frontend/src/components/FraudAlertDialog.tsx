@@ -90,22 +90,14 @@ const FraudAlertDialog: React.FC<FraudAlertDialogProps> = ({
       <DialogTitle className="bg-red-50 border-b">
         <Box className="flex items-center space-x-2">
           {getSeverityIcon(alert.severity)}
-          <Typography variant="h6" className="font-bold text-red-800">
-            FRAUD ALERT DETECTED
+          <Typography variant="h6" className="font-bold text-gray-800">
+            {formatRuleName(alert.rule_id)}
           </Typography>
-          <Chip 
-            label={alert.severity} 
-            color={getSeverityColor(alert.severity) as any}
-            size="small"
-          />
         </Box>
       </DialogTitle>
       
       <DialogContent className="py-6">
         <Alert severity={getSeverityColor(alert.severity) as any} className="mb-4">
-          <Typography variant="h6" className="font-semibold mb-2">
-            {formatRuleName(alert.rule_id)}
-          </Typography>
           <Typography variant="body2">
             Suspicious activity has been detected and requires your immediate attention.
           </Typography>
@@ -151,7 +143,7 @@ const FraudAlertDialog: React.FC<FraudAlertDialogProps> = ({
           size="large"
           className="px-8 font-semibold"
         >
-          Acknowledge Alert
+          Acknowledge
         </Button>
       </DialogActions>
     </Dialog>

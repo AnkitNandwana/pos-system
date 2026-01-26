@@ -48,9 +48,9 @@ const ProductSearch: React.FC = () => {
   };
 
   return (
-    <Paper className="p-4">
-      <Typography variant="h6" className="mb-3">
-        Add Products
+    <Paper className="p-3">
+      <Typography variant="subtitle1" className="mb-2">
+        Search Products
       </Typography>
       
       <TextField
@@ -61,11 +61,12 @@ const ProductSearch: React.FC = () => {
         InputProps={{
           startAdornment: <Search className="mr-2 text-gray-400" />
         }}
-        className="mb-3"
+        className="mb-2"
+        size="small"
       />
 
       {data?.searchProducts && (
-        <List>
+        <List dense className="max-h-48 overflow-y-auto">
           {data.searchProducts.map((product: Product) => (
             <ListItem key={product.productId} divider>
               <ListItemText

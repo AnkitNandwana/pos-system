@@ -61,14 +61,37 @@ function basketReducer(state: BasketState, action: BasketAction): BasketState {
       return { ...state, customer: action.payload };
     case 'ADD_ITEM':
       if (!state.basket) return state;
-      return {
-        ...state,
-        basket: {
-          ...state.basket,
-          items: [...state.basket.items, action.payload],
-          totalAmount: state.basket.totalAmount + (action.payload.price * action.payload.quantity)
-        }
-      };
+      
+      // Check if item already exists
+      const existingItemIndex = state.basket.items.findIndex(
+        item => item.productId === action.payload.productId
+      );
+      
+      if (existingItemIndex >= 0) {
+        // Replace existing item with backend response (backend handles quantity increment)
+        const updatedItems = [...state.basket.items];
+        const oldQuantity = updatedItems[existingItemIndex].quantity;
+        updatedItems[existingItemIndex] = action.payload;
+        
+        return {
+          ...state,
+          basket: {
+            ...state.basket,
+            items: updatedItems,
+            totalAmount: state.basket.totalAmount - (updatedItems[existingItemIndex].price * oldQuantity) + (action.payload.price * action.payload.quantity)
+          }
+        };
+      } else {
+        // Add new item
+        return {
+          ...state,
+          basket: {
+            ...state.basket,
+            items: [...state.basket.items, action.payload],
+            totalAmount: state.basket.totalAmount + (action.payload.price * action.payload.quantity)
+          }
+        };
+      }
     case 'REMOVE_ITEM':
       if (!state.basket) return state;
       const itemToRemove = state.basket.items.find(item => item.id === action.payload);

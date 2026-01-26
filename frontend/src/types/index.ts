@@ -75,7 +75,8 @@ export interface AgeVerificationState {
 export interface RestrictedItem {
   productId: string;
   name: string;
-  minimumAge: number;
+  minimumAge?: number;
+  minimum_age?: number;  // Backend sends snake_case
   category: string;
   quantity?: number;
   price?: number;

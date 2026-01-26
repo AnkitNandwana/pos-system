@@ -13,6 +13,19 @@ export const GET_PLUGINS = gql`
   }
 `;
 
+export const GET_PRODUCTS = gql`
+  query GetProducts {
+    products {
+      productId
+      name
+      price
+      category
+      ageRestricted
+      minimumAge
+    }
+  }
+`;
+
 export const SEARCH_PRODUCTS = gql`
   query SearchProducts($query: String!) {
     searchProducts(query: $query) {

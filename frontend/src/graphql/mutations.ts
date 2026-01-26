@@ -62,8 +62,8 @@ export const START_BASKET_MUTATION = gql`
 `;
 
 export const ADD_ITEM_MUTATION = gql`
-  mutation AddItem($basketId: String!, $productId: String!, $productName: String!, $quantity: Int!, $price: Float!) {
-    addItem(basketId: $basketId, productId: $productId, productName: $productName, quantity: $quantity, price: $price) {
+  mutation AddItem($basketId: String!, $productId: String!, $productName: String!, $quantity: Int!, $price: Float!, $terminalId: String) {
+    addItem(basketId: $basketId, productId: $productId, productName: $productName, quantity: $quantity, price: $price, terminalId: $terminalId) {
       id
       productId
       productName

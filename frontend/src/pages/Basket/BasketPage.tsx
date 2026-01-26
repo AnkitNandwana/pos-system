@@ -5,6 +5,7 @@ import { useBasket } from '../../context/BasketContext';
 import { useBasketDetails } from '../../hooks/useBasketDetails';
 import { START_BASKET_MUTATION } from '../../graphql/mutations';
 import ProductSearch from '../../components/ProductSearch';
+import ProductList from '../../components/ProductList';
 import BasketSummary from '../../components/BasketSummary';
 import RealtimeRecommendations from '../../components/RealtimeRecommendations';
 import AgeVerification from '../../components/AgeVerification';
@@ -35,15 +36,24 @@ const BasketPage: React.FC = () => {
 
   return (
     <Container maxWidth="xl" className="py-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-1 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left Section */}
+        <div className="lg:col-span-1 space-y-4">
           <CustomerInfo customer={customer} />
-          <ProductSearch />
           <RealtimeRecommendations />
         </div>
 
-        <div className="md:col-span-2">
-          <BasketSummary basket={basket} />
+        {/* Middle Section - Product Grid */}
+        <div className="lg:col-span-1 space-y-4">
+          <ProductSearch />
+          <ProductList />
+        </div>
+
+        {/* Right Section - Basket Summary */}
+        <div className="lg:col-span-1">
+          <div className="mt-8">
+            <BasketSummary basket={basket} />
+          </div>
         </div>
       </div>
 

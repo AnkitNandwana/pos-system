@@ -23,7 +23,7 @@ class BasketMutations:
         
         # Publish basket started event
         event_producer.publish(settings.KAFKA_TOPIC, {
-            'event_type': 'basket.started',
+            'event_type': 'BASKET_STARTED',
             'timestamp': timezone.now().isoformat(),
             'employee_id': employee_id,
             'basket_id': basket.basket_id,
@@ -40,7 +40,8 @@ class BasketMutations:
         product_id: str, 
         product_name: str,
         quantity: int, 
-        price: float
+        price: float,
+        terminal_id: Optional[str] = None
     ) -> Optional[BasketItemType]:
         import logging
         logger = logging.getLogger(__name__)
@@ -56,47 +57,92 @@ class BasketMutations:
             logger.info(f"[ADD_ITEM] Product found: {product.name}, age_restricted: {product.age_restricted}")
             
             if product.age_restricted:
-                logger.info(f"[ADD_ITEM] Age-restricted item detected, publishing event")
+                # Check if age verification plugin is enabled
+                from plugins.models import PluginConfiguration
+                try:
+                    plugin_config = PluginConfiguration.objects.get(name='age_verification')
+                    plugin_enabled = plugin_config.enabled
+                except PluginConfiguration.DoesNotExist:
+                    plugin_enabled = False
                 
-                # Publish age verification required event
-                event_producer.publish(settings.KAFKA_TOPIC, {
-                    'event_type': 'item.added',
-                    'timestamp': timezone.now().isoformat(),
-                    'basket_id': basket_id,
-                    'product_id': product_id,
-                    'product_name': product_name,
-                    'quantity': quantity,
-                    'price': price,
-                    'employee_id': basket.employee.id,
-                    'age_restricted': True
-                })
+                logger.info(f"[ADD_ITEM] Age verification plugin enabled: {plugin_enabled}")
                 
-                logger.info(f"[ADD_ITEM] Event published for age-restricted item with price: {price}")
-                
-                # Add item directly to basket (plugin will handle verification separately)
-                item = BasketItem.objects.create(
-                    basket=basket,
-                    product_id=product_id,
-                    product_name=product_name,
-                    quantity=quantity,
-                    price=price
-                )
-                
-                logger.info(f"[ADD_ITEM] Age-restricted item added to basket with price: {price}")
-                return item
+                if plugin_enabled:
+                    logger.info(f"[ADD_ITEM] Age-restricted item detected, publishing event")
+                    
+                    # Publish age verification required event
+                    event_producer.publish(settings.KAFKA_TOPIC, {
+                        'event_type': 'item.added',
+                        'timestamp': timezone.now().isoformat(),
+                        'basket_id': basket_id,
+                        'product_id': product_id,
+                        'product_name': product_name,
+                        'quantity': quantity,
+                        'price': price,
+                        'employee_id': basket.employee.id,
+                        'terminal_id': terminal_id,
+                        'age_restricted': True
+                    })
+                    
+                    logger.info(f"[ADD_ITEM] Event published for age-restricted item - NOT adding to basket yet")
+                    
+                    # Return None - item will be added after verification
+                    return None
+                else:
+                    logger.info(f"[ADD_ITEM] Age verification plugin disabled - adding age-restricted item directly")
+                    # Plugin disabled, add age-restricted item directly
+                    item = BasketItem.objects.create(
+                        basket=basket,
+                        product_id=product_id,
+                        product_name=product_name,
+                        quantity=quantity,
+                        price=price
+                    )
+                    
+                    # Publish normal item added event
+                    event_producer.publish(settings.KAFKA_TOPIC, {
+                        'event_type': 'item.added',
+                        'timestamp': timezone.now().isoformat(),
+                        'basket_id': basket_id,
+                        'product_id': product_id,
+                        'product_name': product_name,
+                        'quantity': quantity,
+                        'price': price,
+                        'employee_id': basket.employee.id,
+                        'terminal_id': terminal_id,
+                        'age_restricted': False
+                    })
+                    
+                    return item
                 
         except Product.DoesNotExist:
             logger.warning(f"[ADD_ITEM] Product {product_id} not found")
         
         # Add item normally if no age restriction
         logger.info(f"[ADD_ITEM] Adding normal item to database")
-        item = BasketItem.objects.create(
+        
+        # Check if item already exists in basket
+        existing_item = BasketItem.objects.filter(
             basket=basket,
-            product_id=product_id,
-            product_name=product_name,
-            quantity=quantity,
-            price=price
-        )
+            product_id=product_id
+        ).first()
+        
+        if existing_item:
+            # Update quantity of existing item
+            existing_item.quantity += quantity
+            existing_item.save()
+            item = existing_item
+            logger.info(f"[ADD_ITEM] Updated existing item quantity to {existing_item.quantity}")
+        else:
+            # Create new item
+            item = BasketItem.objects.create(
+                basket=basket,
+                product_id=product_id,
+                product_name=product_name,
+                quantity=quantity,
+                price=price
+            )
+            logger.info(f"[ADD_ITEM] Created new item")
         
         # Publish normal item added event for recommendations
         event_producer.publish(settings.KAFKA_TOPIC, {
@@ -108,6 +154,7 @@ class BasketMutations:
             'quantity': quantity,
             'price': price,
             'employee_id': basket.employee.id,
+            'terminal_id': terminal_id,
             'age_restricted': False
         })
         
@@ -200,13 +247,27 @@ class BasketMutations:
     ) -> BasketItemType:
         """Add age-restricted item after verification"""
         basket = Basket.objects.get(basket_id=basket_id)
-        item = BasketItem.objects.create(
+        
+        # Check if item already exists in basket
+        existing_item = BasketItem.objects.filter(
             basket=basket,
-            product_id=product_id,
-            product_name=product_name,
-            quantity=quantity,
-            price=price
-        )
+            product_id=product_id
+        ).first()
+        
+        if existing_item:
+            # Update quantity of existing item
+            existing_item.quantity += quantity
+            existing_item.save()
+            item = existing_item
+        else:
+            # Create new item
+            item = BasketItem.objects.create(
+                basket=basket,
+                product_id=product_id,
+                product_name=product_name,
+                quantity=quantity,
+                price=price
+            )
         
         # Publish verified item added event
         event_producer.publish(settings.KAFKA_TOPIC, {

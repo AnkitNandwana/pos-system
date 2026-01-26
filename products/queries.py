@@ -8,6 +8,10 @@ from .types import ProductType
 @strawberry.type
 class ProductQueries:
     @strawberry.field
+    def products(self) -> List[ProductType]:
+        return list(Product.objects.all())
+    
+    @strawberry.field
     def search_products(self, query: str) -> List[ProductType]:
         return list(Product.objects.filter(
             Q(name__icontains=query) | 

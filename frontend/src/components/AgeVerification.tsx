@@ -42,6 +42,18 @@ const AgeVerification: React.FC = () => {
       
       switch (event?.eventType) {
         case 'age.verification.required':
+          console.log('=== AGE VERIFICATION DEBUG ===');
+          console.log('Full event:', JSON.stringify(event, null, 2));
+          console.log('Restricted items:', JSON.stringify(event.restrictedItems, null, 2));
+          event.restrictedItems?.forEach((item: any, index: number) => {
+            console.log(`Item ${index}:`, {
+              name: item.name,
+              minimumAge: item.minimumAge,
+              minimum_age: item.minimum_age,
+              allKeys: Object.keys(item)
+            });
+          });
+          console.log('=== END DEBUG ===');
           dispatch({ type: 'SET_VERIFICATION_STATE', payload: 'required' });
           dispatch({ type: 'SET_PENDING_ITEMS', payload: event.restrictedItems });
           break;
@@ -130,7 +142,18 @@ const AgeVerification: React.FC = () => {
     return null;
   }
 
-  const minimumAge = Math.max(...state.pendingItems.map(item => item.minimumAge || 18));
+  const minimumAge = state.pendingItems.length > 0 
+    ? Math.max(...state.pendingItems.map(item => {
+        console.log('Processing item for min age:', item);
+        return item.minimumAge || item.minimum_age || 18;
+      }))
+    : 18;
+
+  // If no pending items but we have verification event data, use event minimumAge
+  const eventMinimumAge = data?.data?.ageVerificationEvents?.minimumAge;
+  const finalMinimumAge = state.pendingItems.length === 0 && eventMinimumAge ? eventMinimumAge : minimumAge;
+
+  console.log('Calculated minimum age:', finalMinimumAge, 'from items:', state.pendingItems, 'event age:', eventMinimumAge);
 
   return (
     <Dialog open={true} maxWidth="md" fullWidth>
@@ -149,7 +172,7 @@ const AgeVerification: React.FC = () => {
             <ListItem key={index} className="bg-orange-50 mb-2 rounded">
               <ListItemText
                 primary={item.name}
-                secondary={`Minimum age: ${item.minimumAge} years | Category: ${item.category}`}
+                secondary={`Minimum age: ${item.minimumAge || item.minimum_age || 18} years | Category: ${item.category}`}
               />
             </ListItem>
           ))}
@@ -163,7 +186,7 @@ const AgeVerification: React.FC = () => {
             value={customerAge}
             onChange={(e) => setCustomerAge(e.target.value)}
             inputProps={{ min: 0, max: 120 }}
-            helperText={`Minimum required age: ${minimumAge} years`}
+            helperText={`Minimum required age: ${finalMinimumAge} years`}
           />
           
           <FormControl fullWidth>
@@ -194,7 +217,7 @@ const AgeVerification: React.FC = () => {
           variant="contained"
           color="success"
           startIcon={<CheckCircle />}
-          disabled={!customerAge || parseInt(customerAge) < minimumAge || state.verificationState === 'verifying'}
+          disabled={!customerAge || parseInt(customerAge) < finalMinimumAge || state.verificationState === 'verifying'}
         >
           {state.verificationState === 'verifying' ? 'Verifying...' : 'Verify Age'}
         </Button>
