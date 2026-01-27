@@ -43,8 +43,12 @@ class Command(BaseCommand):
             settings.KAFKA_TOPIC,
             bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            group_id='pos-consumer-group-v2',
-            auto_offset_reset='latest'
+            group_id='pos-consumer-group-1',
+            auto_offset_reset='latest',
+            enable_auto_commit=True,
+            auto_commit_interval_ms=1000,
+            session_timeout_ms=30000,
+            heartbeat_interval_ms=10000
         )
         
         self.stdout.write(self.style.SUCCESS('Kafka consumer started...'))

@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import { Warning, CheckCircle, Cancel } from '@mui/icons-material';
 import { AGE_VERIFICATION_SUBSCRIPTION } from '../graphql/subscriptions';
-import { VERIFY_AGE_MUTATION, CANCEL_AGE_VERIFICATION_MUTATION, ADD_VERIFIED_ITEM_MUTATION } from '../graphql/mutations';
+import { VERIFY_AGE_MUTATION, CANCEL_AGE_VERIFICATION_MUTATION } from '../graphql/mutations';
 import { useBasket } from '../context/BasketContext';
 
 const AgeVerification: React.FC = () => {
@@ -31,7 +31,6 @@ const AgeVerification: React.FC = () => {
 
   const [verifyAge] = useMutation(VERIFY_AGE_MUTATION);
   const [cancelVerification] = useMutation(CANCEL_AGE_VERIFICATION_MUTATION);
-  const [addVerifiedItem] = useMutation(ADD_VERIFIED_ITEM_MUTATION);
 
   // Subscribe to verification events
   const { data } = useSubscription(AGE_VERIFICATION_SUBSCRIPTION, {
@@ -60,7 +59,8 @@ const AgeVerification: React.FC = () => {
           
         case 'age.verification.completed':
           dispatch({ type: 'SET_VERIFICATION_STATE', payload: 'verified' });
-          addVerifiedItems();
+          dispatch({ type: 'CLEAR_PENDING_ITEMS' });
+          dispatch({ type: 'SET_VERIFICATION_STATE', payload: 'idle' });
           break;
           
         case 'age.verification.failed':
@@ -70,33 +70,6 @@ const AgeVerification: React.FC = () => {
       }
     }
   });
-
-  const addVerifiedItems = async () => {
-    console.log('Adding verified items:', state.pendingItems);
-    for (const item of state.pendingItems) {
-      console.log('Processing item:', item, 'Price:', item.price);
-      try {
-        const result = await addVerifiedItem({
-          variables: {
-            basketId: basket?.basketId,
-            productId: item.productId,
-            productName: item.name,
-            quantity: item.quantity || 1,
-            price: parseFloat(String(item.price || 0)) || 0.0
-          }
-        });
-        
-        console.log('Add verified item result:', result.data?.addVerifiedItem);
-        if (result.data?.addVerifiedItem) {
-          dispatch({ type: 'ADD_ITEM', payload: result.data.addVerifiedItem });
-        }
-      } catch (error) {
-        console.error('Error adding verified item:', error);
-      }
-    }
-    dispatch({ type: 'CLEAR_PENDING_ITEMS' });
-    dispatch({ type: 'SET_VERIFICATION_STATE', payload: 'idle' });
-  };
 
   const handleVerifyAge = async () => {
     if (!customerAge || !basket?.basketId) return;
@@ -109,6 +82,7 @@ const AgeVerification: React.FC = () => {
           basketId: basket.basketId,
           verifierEmployeeId: Number(basket.employee.id),
           customerAge: parseInt(customerAge),
+          terminalId: localStorage.getItem('terminalId') || '',
           verificationMethod
         }
       });

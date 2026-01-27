@@ -280,7 +280,7 @@ class AgeVerificationPluginTest(TestCase):
             'price': 4.99
         })
         
-        # Complete age verification
+        # Complete age verification (this now adds items to basket)
         self.plugin.handle_event('age.verified', {
             'basket_id': 'BASKET-123',
             'verifier_employee_id': self.employee.id,
@@ -288,19 +288,24 @@ class AgeVerificationPluginTest(TestCase):
             'verification_method': 'ID_CHECK'
         })
         
-        # Process verification completion
-        event_data = {'basket_id': 'BASKET-123'}
-        self.plugin.handle_event('age.verification.completed', event_data)
-        
         # Should add item to basket
         basket_item = BasketItem.objects.get(basket=self.basket, product_id='BEER001')
         self.assertEqual(basket_item.product_name, 'Beer')
         self.assertEqual(basket_item.quantity, 2)
         self.assertEqual(basket_item.price, Decimal('4.99'))
         
-        # Should publish verified item added event
+        # Should publish verified item added event (check the first call which is verified.item.added)
         mock_producer.publish.assert_called()
-        published_data = mock_producer.publish.call_args[0][1]
+        # Get all calls to find the verified.item.added event
+        calls = mock_producer.publish.call_args_list
+        verified_item_call = None
+        for call in calls:
+            if call[0][1]['event_type'] == 'verified.item.added':
+                verified_item_call = call
+                break
+        
+        self.assertIsNotNone(verified_item_call, "verified.item.added event should be published")
+        published_data = verified_item_call[0][1]
         self.assertEqual(published_data['event_type'], 'verified.item.added')
         self.assertEqual(published_data['product_id'], 'BEER001')
     

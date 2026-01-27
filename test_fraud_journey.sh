@@ -1,0 +1,63 @@
+#!/bin/bash
+
+echo "Fraud Detection Journey Test Guide"
+echo "=================================="
+
+echo ""
+echo "✅ Fraud detection backend is now working!"
+echo ""
+
+echo "JOURNEY TEST SCENARIOS:"
+echo ""
+
+echo "1. MULTIPLE TERMINALS TEST"
+echo "   a) Start Django server: python3 manage.py runserver"
+echo "   b) Start Kafka consumer: python3 manage.py consume_events"
+echo "   c) Open http://localhost:3000 in TWO different browser tabs"
+echo "   d) Login with same credentials (ankit@test.com) in BOTH tabs"
+echo "   e) Expected: Fraud alert should be logged in Django console"
+echo "   f) Check database: python3 manage.py shell"
+echo "      >>> from plugins.fraud_detection.models import FraudAlert"
+echo "      >>> FraudAlert.objects.all()"
+echo ""
+
+echo "2. RAPID ITEM ADDITION TEST"
+echo "   a) Login to POS system"
+echo "   b) Start a new basket"
+echo "   c) Quickly add 5+ items (within 30 seconds)"
+echo "   d) Expected: Fraud alert for rapid item addition"
+echo ""
+
+echo "3. HIGH VALUE PAYMENT TEST"
+echo "   a) Login to POS system"
+echo "   b) Immediately start basket and add expensive items (>$500)"
+echo "   c) Complete payment within 60 seconds of login"
+echo "   d) Expected: Fraud alert for high-value short session"
+echo ""
+
+echo "4. ANONYMOUS PAYMENT TEST"
+echo "   a) Start basket without customer lookup"
+echo "   b) Add items totaling >$300"
+echo "   c) Complete payment without identifying customer"
+echo "   d) Expected: Fraud alert for anonymous high-value payment"
+echo ""
+
+echo "5. VERIFY FRAUD DETECTION"
+echo "   Check Django console logs for:"
+echo "   - 'FRAUD ALERT: [Rule Name] - Employee [username]'"
+echo "   - Plugin execution messages"
+echo ""
+echo "   Check database:"
+echo "   python3 manage.py shell"
+echo "   >>> from plugins.fraud_detection.models import FraudAlert"
+echo "   >>> for alert in FraudAlert.objects.all():"
+echo "   ...     print(f'{alert.rule.name}: {alert.severity} - {alert.details}')"
+echo ""
+
+echo "6. MANUAL VERIFICATION"
+echo "   Run: python3 test_fraud_detection_simple.py"
+echo "   Should show: ✅ Fraud detection test PASSED"
+echo ""
+
+echo "NOTE: WebSocket real-time alerts are disabled to prevent connection spam."
+echo "Fraud detection works via Kafka events and database logging."

@@ -219,6 +219,7 @@ class BasketMutations:
         basket_id: str, 
         verifier_employee_id: int,
         customer_age: int,
+        terminal_id: str,
         verification_method: str = "MANUAL_CHECK"
     ) -> bool:
         """Verify customer age for age-restricted items"""
@@ -229,6 +230,8 @@ class BasketMutations:
                 'timestamp': timezone.now().isoformat(),
                 'basket_id': basket_id,
                 'verifier_employee_id': verifier_employee_id,
+                'employee_id': verifier_employee_id,
+                'terminal_id': terminal_id,
                 'customer_age': customer_age,
                 'verification_method': verification_method
             })

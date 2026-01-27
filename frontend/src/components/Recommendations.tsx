@@ -4,6 +4,7 @@ import { RECOMMENDATIONS_SUBSCRIPTION } from '../graphql/subscriptions';
 import { ACCEPT_RECOMMENDATION, REJECT_RECOMMENDATION } from '../graphql/queries';
 import { Recommendation } from '../types';
 import { useBasket } from '../context/BasketContext';
+import { useProductAddition } from '../hooks/useProductAddition';
 
 interface RecommendationsProps {
   basketId: string;
@@ -11,6 +12,7 @@ interface RecommendationsProps {
 
 const Recommendations: React.FC<RecommendationsProps> = ({ basketId }) => {
   const { dispatch } = useBasket();
+  const { addProduct } = useProductAddition();
   
   const { data, loading, error } = useSubscription(RECOMMENDATIONS_SUBSCRIPTION, {
     variables: { basketId },
@@ -37,22 +39,19 @@ const Recommendations: React.FC<RecommendationsProps> = ({ basketId }) => {
       });
       
       if (result.data?.acceptRecommendation?.success) {
-        // Add item to basket
-        dispatch({
-          type: 'ADD_ITEM',
-          payload: {
-            id: `rec_${recommendation.id}`,
-            productId: recommendation.recommendedProductId,
-            productName: recommendation.recommendedProductName,
-            quantity: 1,
-            price: recommendation.recommendedPrice
-          }
+        // Use proper product addition flow
+        await addProduct({
+          productId: recommendation.recommendedProductId,
+          name: recommendation.recommendedProductName,
+          price: recommendation.recommendedPrice,
+          quantity: 1
         });
         
-        // Remove from recommendations
+        // Remove all recommendations for this product
+        const updatedRecommendations = data?.recommendations?.filter((r: Recommendation) => r.recommendedProductId !== recommendation.recommendedProductId) || [];
         dispatch({
           type: 'SET_RECOMMENDATIONS',
-          payload: data?.recommendations?.filter((r: Recommendation) => r.id !== recommendation.id) || []
+          payload: updatedRecommendations
         });
       }
     } catch (error) {
@@ -66,10 +65,11 @@ const Recommendations: React.FC<RecommendationsProps> = ({ basketId }) => {
         variables: { recommendationId: recommendation.id }
       });
       
-      // Remove from recommendations
+      // Remove all recommendations for this product
+      const updatedRecommendations = data?.recommendations?.filter((r: Recommendation) => r.recommendedProductId !== recommendation.recommendedProductId) || [];
       dispatch({
         type: 'SET_RECOMMENDATIONS',
-        payload: data?.recommendations?.filter((r: Recommendation) => r.id !== recommendation.id) || []
+        payload: updatedRecommendations
       });
     } catch (error) {
       console.error('Error rejecting recommendation:', error);
@@ -80,13 +80,22 @@ const Recommendations: React.FC<RecommendationsProps> = ({ basketId }) => {
   if (error) return <div>Error loading recommendations: {error.message}</div>;
   if (!data?.recommendations?.length) return null;
 
+  // Filter unique recommendations by product ID
+  const uniqueRecommendations = data.recommendations.reduce((unique: Recommendation[], rec: Recommendation) => {
+    const exists = unique.find(item => item.recommendedProductId === rec.recommendedProductId);
+    if (!exists) {
+      unique.push(rec);
+    }
+    return unique;
+  }, []);
+
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
       <h3 className="text-lg font-semibold text-blue-800 mb-3">
         Recommended Items
       </h3>
       <div className="space-y-2">
-        {data.recommendations.map((recommendation: Recommendation) => (
+        {uniqueRecommendations.map((recommendation: Recommendation) => (
           <div key={recommendation.id} className="flex items-center justify-between bg-white p-3 rounded border">
             <div className="flex-1">
               <div className="font-medium">{recommendation.recommendedProductName}</div>

@@ -2,7 +2,7 @@ import strawberry
 from django.utils import timezone
 from .models import Recommendation
 from .types import RecommendationType
-from baskets.models import BasketItem, Basket
+from baskets.models import Basket
 from events.producer import event_producer
 from django.conf import settings
 
@@ -23,33 +23,13 @@ class RecommendationMutations:
             recommendation.was_accepted = True
             recommendation.save()
             
-            # Add item to basket
-            basket = Basket.objects.get(basket_id=basket_id)
-            BasketItem.objects.create(
-                basket=basket,
-                product_id=recommendation.recommended_product_id,
-                product_name=recommendation.recommended_product_name,
-                quantity=1,
-                price=recommendation.recommended_price or 0
-            )
-            
-            # Publish events
+            # Only publish recommendation accepted event - let frontend handle item addition
             event_producer.publish(settings.KAFKA_TOPIC, {
                 'event_type': 'RECOMMENDATION_ACCEPTED',
                 'timestamp': timezone.now().isoformat(),
                 'basket_id': basket_id,
                 'recommendation_id': recommendation_id,
                 'product_id': recommendation.recommended_product_id
-            })
-            
-            event_producer.publish(settings.KAFKA_TOPIC, {
-                'event_type': 'ITEM_ADDED',
-                'timestamp': timezone.now().isoformat(),
-                'basket_id': basket_id,
-                'product_id': recommendation.recommended_product_id,
-                'product_name': recommendation.recommended_product_name,
-                'quantity': 1,
-                'price': float(recommendation.recommended_price or 0)
             })
             
             return RecommendationResponse(success=True, message="Recommendation accepted")

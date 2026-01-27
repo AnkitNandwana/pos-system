@@ -82,6 +82,8 @@ function AppContent() {
     
     localStorage.setItem('employee', JSON.stringify(loginData.employee));
     localStorage.setItem('terminal', JSON.stringify(loginData.terminal));
+    localStorage.setItem('terminalId', loginData.terminal.terminalId);
+    localStorage.setItem('employeeId', loginData.employee.id.toString());
   };
 
   const handleLogout = () => {
@@ -94,6 +96,8 @@ function AppContent() {
     localStorage.removeItem('token');
     localStorage.removeItem('employee');
     localStorage.removeItem('terminal');
+    localStorage.removeItem('terminalId');
+    localStorage.removeItem('employeeId');
   };
 
   const handleStartBasket = () => {

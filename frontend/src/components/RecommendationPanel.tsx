@@ -22,6 +22,15 @@ interface RecommendationPanelProps {
 const RecommendationPanel: React.FC<RecommendationPanelProps> = ({ recommendations }) => {
   const { state, dispatch } = useBasket();
   
+  // Filter unique recommendations by product ID
+  const uniqueRecommendations = recommendations.reduce((unique: Recommendation[], rec) => {
+    const exists = unique.find(item => item.recommendedProductId === rec.recommendedProductId);
+    if (!exists) {
+      unique.push(rec);
+    }
+    return unique;
+  }, []);
+  
   const [addItem] = useMutation(ADD_ITEM_MUTATION, {
     onCompleted: (data: any) => {
       dispatch({ type: 'ADD_ITEM', payload: data.addItem });
@@ -40,6 +49,10 @@ const RecommendationPanel: React.FC<RecommendationPanelProps> = ({ recommendatio
         price: parseFloat(rec.recommendedPrice.toString())
       }
     });
+    
+    // Remove all recommendations for this product immediately
+    const updatedRecommendations = recommendations.filter(r => r.recommendedProductId !== rec.recommendedProductId);
+    dispatch({ type: 'SET_RECOMMENDATIONS', payload: updatedRecommendations });
   };
 
   return (
@@ -49,7 +62,7 @@ const RecommendationPanel: React.FC<RecommendationPanelProps> = ({ recommendatio
       </Typography>
       
       <List>
-        {recommendations.map((rec) => (
+        {uniqueRecommendations.map((rec) => (
           <ListItem key={rec.recommendedProductId} divider>
             <ListItemText
               primary={rec.recommendedProductName}

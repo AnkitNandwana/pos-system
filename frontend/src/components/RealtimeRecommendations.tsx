@@ -72,6 +72,9 @@ const RealtimeRecommendations: React.FC = () => {
 
   const handleAccept = async (recommendation: Recommendation) => {
     try {
+      // Remove all recommendations for this product immediately for better UX
+      setRecommendations(prev => prev.filter(r => r.recommendedProductId !== recommendation.recommendedProductId));
+      
       const result = await acceptRecommendation({
         variables: {
           recommendationId: recommendation.id,
@@ -98,9 +101,6 @@ const RealtimeRecommendations: React.FC = () => {
             payload: addResult.data.addItem
           });
         }
-        
-        // Remove from local recommendations
-        setRecommendations(prev => prev.filter(r => r.id !== recommendation.id));
       }
     } catch (error) {
       console.error('Error accepting recommendation:', error);
@@ -109,12 +109,12 @@ const RealtimeRecommendations: React.FC = () => {
 
   const handleReject = async (recommendation: Recommendation) => {
     try {
+      // Remove all recommendations for this product immediately for better UX
+      setRecommendations(prev => prev.filter(r => r.recommendedProductId !== recommendation.recommendedProductId));
+      
       await rejectRecommendation({
         variables: { recommendationId: recommendation.id }
       });
-      
-      // Remove from local recommendations
-      setRecommendations(prev => prev.filter(r => r.id !== recommendation.id));
     } catch (error) {
       console.error('Error rejecting recommendation:', error);
     }
@@ -134,7 +134,16 @@ const RealtimeRecommendations: React.FC = () => {
     );
   }
 
-  if (!recommendations.length) {
+  // Filter unique recommendations by product ID
+  const uniqueRecommendations = recommendations.reduce((unique: Recommendation[], rec) => {
+    const exists = unique.find(item => item.recommendedProductId === rec.recommendedProductId);
+    if (!exists) {
+      unique.push(rec);
+    }
+    return unique;
+  }, []);
+
+  if (!uniqueRecommendations.length) {
     return (
       <Paper className="p-4 border-l-4 border-gray-300">
         <Typography variant="body2" className="text-gray-500">
@@ -159,8 +168,8 @@ const RealtimeRecommendations: React.FC = () => {
       </Alert>
       
       <List>
-        {recommendations.map((rec, index) => (
-          <ListItem key={`${rec.recommendedProductId}-${index}`} divider className="bg-orange-50">
+        {uniqueRecommendations.map((rec) => (
+          <ListItem key={rec.recommendedProductId} divider className="bg-orange-50">
             <ListItemText
               primary={
                 <Box className="flex items-center space-x-2">

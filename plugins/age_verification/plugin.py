@@ -29,6 +29,10 @@ class AgeVerificationPlugin(BasePlugin):
             employee_id = event_data.get('employee_id')
             terminal_id = event_data.get('terminal_id')
             
+            # Store terminal_id and employee_id for use in published events
+            self._current_terminal_id = terminal_id
+            self._current_employee_id = employee_id
+            
             logger.info(f"[AGE VERIFICATION] Processing event: {event_type} for basket {basket_id}")
             
             if event_type == "basket.started":
@@ -42,7 +46,8 @@ class AgeVerificationPlugin(BasePlugin):
             elif event_type == "age.verification.cancelled":
                 self._handle_age_verification_cancelled(event_data, basket_id)
             elif event_type == "age.verification.completed":
-                self._handle_age_verification_completed(event_data, basket_id)
+                # This event is handled by publishing only - no additional processing needed
+                logger.info(f"[AGE VERIFICATION] Age verification completed event processed")
             elif event_type == "payment.initiated":
                 self._handle_payment_initiated(event_data, basket_id, employee_id, terminal_id)
             elif event_type == "payment.completed":
@@ -138,6 +143,12 @@ class AgeVerificationPlugin(BasePlugin):
         customer_age = event_data.get('customer_age')
         verification_method = event_data.get('verification_method', 'MANUAL_CHECK')
         
+        # Check if verification already completed to prevent duplicate processing
+        current_state = state_manager.get_basket_state(basket_id)
+        if current_state and current_state.get('verification_completed', False):
+            logger.info(f"[AGE VERIFICATION] Verification already completed for basket {basket_id}, skipping")
+            return
+        
         # Complete verification in state
         state_manager.complete_verification(basket_id, verifier_id, customer_age, verification_method)
         
@@ -148,7 +159,10 @@ class AgeVerificationPlugin(BasePlugin):
             max_required_age = max(item['minimum_age'] for item in current_state['restricted_items'])
             
             if customer_age >= max_required_age:
-                # Age verification passed - publish completion event
+                # Age verification passed - add items to basket immediately
+                self._add_verified_items_to_basket(basket_id, current_state['restricted_items'])
+                
+                # Publish completion event
                 self._publish_verification_completed(basket_id, customer_age, verification_method, verifier_id)
                 logger.info(f"[AGE VERIFICATION] Verification completed for basket {basket_id} - customer age {customer_age}")
             else:
@@ -189,6 +203,8 @@ class AgeVerificationPlugin(BasePlugin):
             'basket_id': basket_id,
             'restricted_items': restricted_items,
             'minimum_age': max(item['minimum_age'] for item in restricted_items) if restricted_items else 18,
+            'employee_id': getattr(self, '_current_employee_id', None),
+            'terminal_id': getattr(self, '_current_terminal_id', None),
             'message': f"Age verification required for {len(restricted_items)} item(s)"
         }
         event_producer.publish(settings.KAFKA_TOPIC, event)
@@ -202,6 +218,8 @@ class AgeVerificationPlugin(BasePlugin):
             'customer_age': customer_age,
             'verification_method': verification_method,
             'verifier_id': verifier_id,
+            'employee_id': verifier_id,
+            'terminal_id': getattr(self, '_current_terminal_id', None),
             'message': 'Age verification completed successfully'
         }
         event_producer.publish(settings.KAFKA_TOPIC, event)
@@ -252,26 +270,19 @@ class AgeVerificationPlugin(BasePlugin):
         
         logger.info(f"[AGE VERIFICATION] Verification cancelled for basket {basket_id}")
     
-    def _handle_age_verification_completed(self, event_data, basket_id):
+    def _add_verified_items_to_basket(self, basket_id, restricted_items):
         """Add verified items to basket after age verification completion"""
-        if not basket_id:
-            return
-            
-        logger.info(f"[AGE VERIFICATION] Processing verification completion for basket {basket_id}")
+        logger.info(f"[AGE VERIFICATION] Adding {len(restricted_items)} verified items to basket {basket_id}")
         
-        # Get restricted items from state
-        current_state = state_manager.get_basket_state(basket_id)
-        if not current_state or not current_state['restricted_items']:
-            logger.warning(f"[AGE VERIFICATION] No restricted items found for basket {basket_id}")
-            return
-        
-        restricted_items = current_state['restricted_items']
-        logger.info(f"[AGE VERIFICATION] Found {len(restricted_items)} items to add: {restricted_items}")
-        
-        # Add each verified item to the basket
         from baskets.models import Basket, BasketItem
         try:
             basket = Basket.objects.get(basket_id=basket_id)
+            
+            # Check if items have already been added to prevent duplicates
+            current_state = state_manager.get_basket_state(basket_id)
+            if current_state and current_state.get('items_added_to_basket', False):
+                logger.info(f"[AGE VERIFICATION] Items already added to basket {basket_id}, skipping")
+                return
             
             for item in restricted_items:
                 product_id = item.get('productId')
@@ -281,14 +292,28 @@ class AgeVerificationPlugin(BasePlugin):
                 
                 logger.info(f"[AGE VERIFICATION] Adding item {product_id} with price {price}")
                 
-                # Create basket item
-                basket_item = BasketItem.objects.create(
+                # Check if item already exists in basket
+                existing_item = BasketItem.objects.filter(
                     basket=basket,
-                    product_id=product_id,
-                    product_name=product_name,
-                    quantity=quantity,
-                    price=price
-                )
+                    product_id=product_id
+                ).first()
+                
+                if existing_item:
+                    # Don't increment - just ensure correct quantity (age-restricted items should only be added once after verification)
+                    existing_item.quantity = quantity
+                    existing_item.save()
+                    basket_item = existing_item
+                    logger.info(f"[AGE VERIFICATION] Set existing item quantity to {existing_item.quantity}")
+                else:
+                    # Create new basket item
+                    basket_item = BasketItem.objects.create(
+                        basket=basket,
+                        product_id=product_id,
+                        product_name=product_name,
+                        quantity=quantity,
+                        price=price
+                    )
+                    logger.info(f"[AGE VERIFICATION] Created new basket item")
                 
                 # Publish verified item added event
                 event_producer.publish(settings.KAFKA_TOPIC, {
@@ -299,10 +324,15 @@ class AgeVerificationPlugin(BasePlugin):
                     'product_name': product_name,
                     'quantity': quantity,
                     'price': price,
-                    'item_id': str(basket_item.id)
+                    'item_id': str(basket_item.id),
+                    'employee_id': basket.employee.id,
+                    'terminal_id': getattr(self, '_current_terminal_id', None)
                 })
                 
                 logger.info(f"[AGE VERIFICATION] Successfully added {product_name} with price ${price}")
+            
+            # Mark items as added to prevent duplicate processing
+            state_manager.mark_items_added_to_basket(basket_id)
                 
         except Exception as e:
             logger.error(f"[AGE VERIFICATION] Failed to add verified items: {e}")

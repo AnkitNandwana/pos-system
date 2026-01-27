@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.utils import timezone
 from .models import AgeVerificationState
 import logging
 
@@ -13,11 +14,22 @@ class AgeVerificationStateManager:
         """Get basket verification state"""
         try:
             state = AgeVerificationState.objects.get(basket_id=basket_id)
+            restricted_items = state.restricted_items
+            items_added_to_basket = False
+            
+            # Handle both old format (list) and new format (dict with flag)
+            if isinstance(restricted_items, dict):
+                items_added_to_basket = restricted_items.get('items_added_to_basket', False)
+                restricted_items = restricted_items.get('items', [])
+            elif not isinstance(restricted_items, list):
+                restricted_items = []
+            
             return {
                 'basket_id': state.basket_id,
                 'requires_verification': state.requires_verification,
                 'verification_completed': state.verification_completed,
-                'restricted_items': state.restricted_items,
+                'restricted_items': restricted_items,
+                'items_added_to_basket': items_added_to_basket,
                 'verified_at': state.verified_at,
                 'verifier_employee_id': state.verifier_employee_id,
                 'customer_age': state.customer_age,
@@ -42,6 +54,7 @@ class AgeVerificationStateManager:
         )
         
         state.requires_verification = len(restricted_items) > 0
+        # Store as list format initially, will be converted to dict format when items are added
         state.restricted_items = restricted_items
         state.save()
         
@@ -53,7 +66,7 @@ class AgeVerificationStateManager:
         try:
             state = AgeVerificationState.objects.get(basket_id=basket_id)
             state.verification_completed = True
-            state.verified_at = datetime.now()
+            state.verified_at = timezone.now()
             state.verifier_employee_id = verifier_employee_id
             state.customer_age = customer_age
             state.verification_method = verification_method
@@ -64,6 +77,22 @@ class AgeVerificationStateManager:
         except AgeVerificationState.DoesNotExist:
             logger.error(f"No verification state found for basket {basket_id}")
             return None
+    
+    def mark_items_added_to_basket(self, basket_id):
+        """Mark that items have been added to basket to prevent duplicates"""
+        try:
+            state = AgeVerificationState.objects.get(basket_id=basket_id)
+            # Use a simple flag in the restricted_items data to track if items were added
+            if isinstance(state.restricted_items, list) and state.restricted_items:
+                # Add a flag to indicate items have been processed
+                state.restricted_items = {
+                    'items': state.restricted_items,
+                    'items_added_to_basket': True
+                }
+                state.save()
+                logger.info(f"Marked items as added to basket for {basket_id}")
+        except AgeVerificationState.DoesNotExist:
+            logger.error(f"No verification state found for basket {basket_id}")
     
     def clear_basket_state(self, basket_id):
         """Clear basket state after payment completion"""

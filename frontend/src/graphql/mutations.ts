@@ -120,8 +120,8 @@ export const UPDATE_PLUGIN_MUTATION = gql`
 `;
 
 export const VERIFY_AGE_MUTATION = gql`
-  mutation VerifyAge($basketId: String!, $verifierEmployeeId: Int!, $customerAge: Int!, $verificationMethod: String) {
-    verifyAge(basketId: $basketId, verifierEmployeeId: $verifierEmployeeId, customerAge: $customerAge, verificationMethod: $verificationMethod)
+  mutation VerifyAge($basketId: String!, $verifierEmployeeId: Int!, $customerAge: Int!, $terminalId: String!, $verificationMethod: String) {
+    verifyAge(basketId: $basketId, verifierEmployeeId: $verifierEmployeeId, customerAge: $customerAge, terminalId: $terminalId, verificationMethod: $verificationMethod)
   }
 `;
 

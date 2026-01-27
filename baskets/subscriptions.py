@@ -49,7 +49,16 @@ class Subscription:
             'age.verification.cancelled'
         ]):
             if event.get('basket_id') == basket_id:
+                # Parse restricted items from event data
                 restricted_items = []
+                if event.get('restricted_items'):
+                    for item in event.get('restricted_items', []):
+                        restricted_items.append(RestrictedItem(
+                            product_id=item.get('productId', ''),
+                            name=item.get('name', ''),
+                            minimum_age=item.get('minimum_age', 18),
+                            category=item.get('category', '')
+                        ))
                 
                 yield AgeVerificationEvent(
                     event_type=event.get('event_type', ''),
